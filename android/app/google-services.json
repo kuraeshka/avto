@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "174217211358",
-    "project_id": "events-3ea95",
-    "storage_bucket": "events-3ea95.firebasestorage.app"
+    "project_number": "825339002272",
+    "project_id": "platform-for-evenets",
+    "storage_bucket": "platform-for-evenets.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:174217211358:android:de9b8954160282ba06814f",
+        "mobilesdk_app_id": "1:825339002272:android:76b91df31f81eceeddb8c5",
         "android_client_info": {
           "package_name": "com.example.avto"
         }
@@ -15,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAE7hJbjC_X9em5uEErhSoDdjPF44CDHBs"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:174217211358:android:a894f3d756f64a6306814f",
-        "android_client_info": {
-          "package_name": "com.example.test123"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAE7hJbjC_X9em5uEErhSoDdjPF44CDHBs"
+          "current_key": "AIzaSyA6-2Tsp_q-NQMTMTtlFjNa_8Anf6bGlMc"
         }
       ],
       "services": {

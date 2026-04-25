@@ -41,48 +41,47 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAO4QR-4oM2q9QsH63S7Xi24igAZYGej14',
-    appId: '1:174217211358:web:c07848ac6203752006814f',
-    messagingSenderId: '174217211358',
-    projectId: 'events-3ea95',
-    authDomain: 'events-3ea95.firebaseapp.com',
-    storageBucket: 'events-3ea95.firebasestorage.app',
-    measurementId: 'G-HQRZ1H2V2N',
+    apiKey: 'AIzaSyBkGLgWgAgv7sECyQ8xJ6Z-iOen3I052OQ',
+    appId: '1:825339002272:web:dc39c6e909cc68bcddb8c5',
+    messagingSenderId: '825339002272',
+    projectId: 'platform-for-evenets',
+    authDomain: 'platform-for-evenets.firebaseapp.com',
+    storageBucket: 'platform-for-evenets.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAE7hJbjC_X9em5uEErhSoDdjPF44CDHBs',
-    appId: '1:174217211358:android:de9b8954160282ba06814f',
-    messagingSenderId: '174217211358',
-    projectId: 'events-3ea95',
-    storageBucket: 'events-3ea95.firebasestorage.app',
+    apiKey: 'AIzaSyA6-2Tsp_q-NQMTMTtlFjNa_8Anf6bGlMc',
+    appId: '1:825339002272:android:76b91df31f81eceeddb8c5',
+    messagingSenderId: '825339002272',
+    projectId: 'platform-for-evenets',
+    storageBucket: 'platform-for-evenets.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC8RrliV5-WLsG1ZYEStPK2yOyo7L1fcGw',
-    appId: '1:174217211358:ios:0b0f79579a06e4ed06814f',
-    messagingSenderId: '174217211358',
-    projectId: 'events-3ea95',
-    storageBucket: 'events-3ea95.firebasestorage.app',
+    apiKey: 'AIzaSyChb0yxaP8RSLOvJ03MWv3u0XuBIkyumNk',
+    appId: '1:825339002272:ios:e9745d63078eb049ddb8c5',
+    messagingSenderId: '825339002272',
+    projectId: 'platform-for-evenets',
+    storageBucket: 'platform-for-evenets.firebasestorage.app',
     iosBundleId: 'com.example.avto',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyC8RrliV5-WLsG1ZYEStPK2yOyo7L1fcGw',
-    appId: '1:174217211358:ios:0b0f79579a06e4ed06814f',
-    messagingSenderId: '174217211358',
-    projectId: 'events-3ea95',
-    storageBucket: 'events-3ea95.firebasestorage.app',
+    apiKey: 'AIzaSyChb0yxaP8RSLOvJ03MWv3u0XuBIkyumNk',
+    appId: '1:825339002272:ios:e9745d63078eb049ddb8c5',
+    messagingSenderId: '825339002272',
+    projectId: 'platform-for-evenets',
+    storageBucket: 'platform-for-evenets.firebasestorage.app',
     iosBundleId: 'com.example.avto',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAO4QR-4oM2q9QsH63S7Xi24igAZYGej14',
-    appId: '1:174217211358:web:6919fb5a56a1776706814f',
-    messagingSenderId: '174217211358',
-    projectId: 'events-3ea95',
-    authDomain: 'events-3ea95.firebaseapp.com',
-    storageBucket: 'events-3ea95.firebasestorage.app',
-    measurementId: 'G-YD4PCRDCQF',
+    apiKey: 'AIzaSyBkGLgWgAgv7sECyQ8xJ6Z-iOen3I052OQ',
+    appId: '1:825339002272:web:bebb884d121b985cddb8c5',
+    messagingSenderId: '825339002272',
+    projectId: 'platform-for-evenets',
+    authDomain: 'platform-for-evenets.firebaseapp.com',
+    storageBucket: 'platform-for-evenets.firebasestorage.app',
   );
+
 }

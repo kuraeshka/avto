@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 
 class CoreScreen extends StatefulWidget {
-  const CoreScreen({super.key});
+  const CoreScreen({super.key, required this.calendarId});
+  final String calendarId;
+
+  
 
   @override
+  
   State<CoreScreen> createState() => _MyWidgetState();
 }
 

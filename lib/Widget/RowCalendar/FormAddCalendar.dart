@@ -1,75 +1,63 @@
 import 'package:avto/Widget/RowCalendar/FormConnectCalendar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-void FormAddCalendar(context) {
+void FormAddCalendar(BuildContext context) {
+  final TextEditingController nameController = TextEditingController();
+
   showDialog(
     context: context,
-    builder: (BuildContext context) {
+    builder: (context) {
       return AlertDialog(
-        title: Text("Добавление календаря"),
-        content: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.3,
-          width: MediaQuery.of(context).size.width * 0.2,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 300,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Code',
-                      hintText: 'Введите Code',
-                      prefixIcon: Icon(Icons.key),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15.0),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15.0),
-                        borderSide: BorderSide(color: Colors.grey.shade400),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Colors.blue, width: 2.0),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 30),
-                SizedBox(
-                  width: 300,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamedAndRemoveUntil(
-                        "/home",
-                        (Route<dynamic> route) => false,
-                      );
-                    },
-                    child: Text("Подключение"),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 30),
-                SizedBox(
-                  width: 300,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      FormConnectCalendar(context);
-                    },
-                    child: Text("Создать календарь"),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                ),
-              ],
+        title: const Text("Создать календарь"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: "Название"),
             ),
-          ),
+          ],
         ),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              final userId = FirebaseAuth.instance.currentUser!.uid;
+              final name = nameController.text;
+
+              final doc = await FirebaseFirestore.instance
+                  .collection('calendars')
+                  .add({
+                'name': name,
+                'code': DateTime.now().millisecondsSinceEpoch.toString(),
+                'ownerId': userId,
+              });
+
+              /// 🔥 добавляем пользователя в календарь
+              await FirebaseFirestore.instance
+                  .collection('calendars')
+                  .doc(doc.id)
+                  .collection('members')
+                  .doc(userId)
+                  .set({'role': 'admin'});
+
+              /// 🔥 добавляем календарь пользователю
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userId)
+                  .collection('calendars')
+                  .doc(doc.id)
+                  .set({
+                'name': name,
+                'role': 'admin',
+              });
+
+              Navigator.pop(context);
+            },
+            child: const Text("Создать"),
+          ),
+        ],
       );
     },
   );

@@ -1,16 +1,1 @@
-{
-  "hosting": {
-    "public": "build/web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
-}
+{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"flutter":{"platforms":{"android":{"default":{"projectId":"platform-for-evenets","appId":"1:825339002272:android:76b91df31f81eceeddb8c5","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"platform-for-evenets","configurations":{"android":"1:825339002272:android:76b91df31f81eceeddb8c5","ios":"1:825339002272:ios:e9745d63078eb049ddb8c5","macos":"1:825339002272:ios:e9745d63078eb049ddb8c5","web":"1:825339002272:web:dc39c6e909cc68bcddb8c5","windows":"1:825339002272:web:bebb884d121b985cddb8c5"}}}}}}

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -132,16 +133,30 @@ class _RegaWindowState extends State<RegaWindow> {
                       height: 45,
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (passwordAcceptController == passwordController) {
+                          if (passwordAcceptController.text ==
+                              passwordController.text) {
                             try {
                               final email = loginController.text.trim();
                               final password = passwordController.text.trim();
 
-                              await FirebaseAuth.instance
+                              // 1. Регистрация
+                              final userCredential = await FirebaseAuth.instance
                                   .createUserWithEmailAndPassword(
                                     email: email,
                                     password: password,
                                   );
+
+                              // 2. Получаем userId
+                              final userId = userCredential.user!.uid;
+
+                              // 3. Записываем в Firestore
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(userId)
+                                  .set({
+                                    'email': email,
+                                    'createdAt': FieldValue.serverTimestamp(),
+                                  });
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text("Регистрация успешна")),
@@ -168,7 +183,7 @@ class _RegaWindowState extends State<RegaWindow> {
                             }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Ошибка ввода пароля")),
+                              SnackBar(content: Text("Пароли не совпадают")),
                             );
                           }
                         },
