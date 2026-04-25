@@ -1,6 +1,8 @@
 import 'package:avto/Widget/Widget.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+
 
 class HelloWindow extends StatefulWidget {
   const HelloWindow({super.key});
@@ -29,8 +31,11 @@ class _HelloWindowState extends State<HelloWindow> {
                 Center(
                   child: Text(
                     "Давайте наведем порядок в расписании!",
-                  
-                    style: TextStyle(fontSize: 20,fontWeight: FontWeight.w400),
+                    style: GoogleFonts.pacifico(
+                      fontSize:24,
+                      // делает жирнее
+                      color: Colors.blueGrey,
+                    ),
                   ),
                 ),
               ],
