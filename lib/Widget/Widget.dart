@@ -1,0 +1,9 @@
+export 'choice_Theme.dart';
+export 'RowCalendar/RowCalendar.dart';
+export 'ListPeopleInCalendar.dart';
+export 'CelebrationAdd.dart';
+export 'package:avto/Widget/Profil_widget/Avatar_profil.dart';
+export 'package:avto/Widget/Profil_widget/Info.dart';
+export 'Profil_widget/history.dart';
+export 'Settings_widget/Avatar_settings.dart';
+export 'Settings_widget/info_calendar.dart';
