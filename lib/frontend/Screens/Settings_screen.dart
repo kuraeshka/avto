@@ -26,6 +26,61 @@ class _SettingsWindowState extends State<SettingsWindow> {
     _loadParticipants();
   }
 
+  Future<void> _addEquipment() async {
+    final nameController = TextEditingController();
+    final placeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: Text("Добавить оборудование"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: "Наименование"),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: placeController,
+                decoration: InputDecoration(labelText: "Местоположение"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final place = placeController.text.trim();
+
+                if (name.isEmpty) return;
+
+                final newItem = {'name': name, 'place': place};
+
+                final updatedList = List.from(equipment);
+                updatedList.add(newItem);
+
+                await FirebaseFirestore.instance
+                    .collection('calendars')
+                    .doc(widget.calendarId)
+                    .update({'equipment': updatedList});
+
+                Navigator.pop(context);
+              },
+              child: Text("Добавить"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _loadParticipants() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('calendars')
@@ -164,6 +219,39 @@ class _SettingsWindowState extends State<SettingsWindow> {
     );
   }
 
+  Widget _equipmentBlock() {
+    return Expanded(
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Оборудование",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              IconButton(icon: Icon(Icons.add), onPressed: _addEquipment),
+            ],
+          ),
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              itemCount: equipment.length,
+              itemBuilder: (_, i) {
+                final item = equipment[i];
+
+                return ListTile(
+                  title: Text(item['name'] ?? ''),
+                  subtitle: Text("📍 ${item['place'] ?? 'Не указано'}"),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,7 +309,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
                 Row(
                   children: [
                     _listBlock("Участники", participants),
-                    _listBlock("Оборудование", equipment),
+                    _equipmentBlock()
                   ],
                 ),
 
