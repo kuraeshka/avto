@@ -1,13 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 
-void CelebrationAdd(BuildContext context, EventsController controller) {
+void CelebrationAdd(
+  BuildContext context,
+  String calendarId,
+) {
   final titleController = TextEditingController();
   final placeController = TextEditingController();
   final performersController = TextEditingController();
   final equipmentController = TextEditingController();
 
-  // Переменная для хранения выбранной даты
   DateTime? selectedDate;
 
   showDialog(
@@ -78,8 +80,8 @@ void CelebrationAdd(BuildContext context, EventsController controller) {
               ),
             ),
             actions: [
-              ElevatedButton(
-                onPressed: () {
+              TextButton(
+                onPressed: () async {
                   if (selectedDate == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -89,37 +91,30 @@ void CelebrationAdd(BuildContext context, EventsController controller) {
                     return;
                   }
 
-                  if (selectedDate == null) {
-                    // Показываем предупреждение, что дата не выбрана
-                    return;
-                  }
+                  final title = titleController.text.isNotEmpty
+                      ? titleController.text
+                      : 'Без названия';
 
-                  final newEvent = Event(
-                    startTime:
-                        selectedDate!, // <- Оператор !, так как мы уже проверили, что selectedDate не null
-                    endTime: selectedDate!,
-                    title: titleController.text.isNotEmpty
-                        ? titleController.text
-                        : 'Без названия',
-                    // ...
-                  );
-
-                  controller.updateCalendarData((calendarData) {
-                    calendarData.addEvents([newEvent]);
-                  });
+                  // ✅ Сохраняем в Firestore
+                  await FirebaseFirestore.instance
+                      .collection('calendars')
+                      .doc(calendarId)
+                      .collection('events')
+                      .add({
+                        'name': title,
+                        'place': placeController.text,
+                        'performers': performersController.text,
+                        'equipment': equipmentController.text,
+                        'date': selectedDate,
+                      });
 
                   Navigator.pop(context);
+
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Событие "${newEvent.title}" добавлено'),
-                    ),
+                    SnackBar(content: Text('Событие "$title" добавлено')),
                   );
                 },
                 child: const Text("Добавить"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Отмена"),
               ),
             ],
           );

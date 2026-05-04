@@ -49,22 +49,45 @@ class _AuthenticationWindowState extends State<AuthenticationWindow> {
                     TextField(
                       controller: loginController,
                       decoration: InputDecoration(
-                        labelText: 'Login',
-                        prefixIcon: const Icon(Icons.person),
+                        labelText: 'Email',
+                        hintText: 'Введите ваш Email',
+                        prefixIcon: Icon(Icons.key),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide(
+                            color: Colors.blue,
+                            width: 2.0,
+                          ),
                         ),
                       ),
                     ),
 
                     TextField(
                       controller: passwordController,
-                      obscureText: true,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock),
+                        hintText: 'Введите ваш Password',
+                        prefixIcon: Icon(Icons.key),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide(
+                            color: Colors.blue,
+                            width: 2.0,
+                          ),
                         ),
                       ),
                     ),
@@ -73,12 +96,16 @@ class _AuthenticationWindowState extends State<AuthenticationWindow> {
                       width: double.infinity,
                       height: 45,
                       child: ElevatedButton(
-                        onPressed: () async{
+                        onPressed: () async {
                           try {
                             final email = loginController.text.trim();
                             final password = passwordController.text.trim();
 
-                            await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+                            await FirebaseAuth.instance
+                                .signInWithEmailAndPassword(
+                                  email: email,
+                                  password: password,
+                                );
                             Navigator.of(context).pushNamed('/Hello');
                           } on FirebaseAuthException catch (e) {
                             String message = "Ошибка";
@@ -88,10 +115,10 @@ class _AuthenticationWindowState extends State<AuthenticationWindow> {
                             } else if (e.code == 'wrong-password') {
                               message = 'Неверный пароль';
                             }
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(message)));
                           }
-                          
-                          
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).primaryColor,

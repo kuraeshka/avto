@@ -29,10 +29,10 @@ class _HelloWindowState extends State<HelloWindow> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Center(
-                  child: Text(
+                  child: Text( 
                     "Давайте наведем порядок в расписании!",
                     style: GoogleFonts.pacifico(
-                      fontSize:24,
+                      fontSize:28,
                       // делает жирнее
                       color: Colors.blueGrey,
                     ),

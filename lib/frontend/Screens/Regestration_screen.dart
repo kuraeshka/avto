@@ -55,8 +55,8 @@ class _RegaWindowState extends State<RegaWindow> {
                       child: TextField(
                         controller: loginController,
                         decoration: InputDecoration(
-                          labelText: 'Login',
-                          hintText: 'Введите ваш Login',
+                          labelText: 'Email',
+                          hintText: 'Введите ваш Email',
                           prefixIcon: Icon(Icons.people),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15.0),
