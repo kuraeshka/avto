@@ -6,14 +6,16 @@ import 'package:table_calendar/table_calendar.dart';
 
 class Event {
   final String title;
-  final DateTime date;
+  final DateTime start;
+  final DateTime end;
   final String place;
   final List performers;
   final List equipment;
 
   Event({
     required this.title,
-    required this.date,
+    required this.start,
+    required this.end,
     required this.place,
     required this.performers,
     required this.equipment,
@@ -38,29 +40,13 @@ class _MyWidgetState extends State<CoreScreen> {
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
-  static List<String> months = [
-    'Январь',
-    'Февраль',
-    'Март',
-    'Апрель',
-    'Май',
-    'Июнь',
-    'Июль',
-    'Август',
-    'Сентябрь',
-    'Октябрь',
-    'Ноябрь',
-    'Декабрь',
-  ];
-
-  String get currentMonth => months[focusedDay.month - 1];
-
   @override
   void initState() {
     super.initState();
     _listenEvents();
   }
 
+  /// 🔥 СЛУШАЕМ СОБЫТИЯ
   void _listenEvents() {
     _subscription = FirebaseFirestore.instance
         .collection('calendars')
@@ -72,30 +58,49 @@ class _MyWidgetState extends State<CoreScreen> {
 
           for (var doc in snapshot.docs) {
             final data = doc.data();
-            final date = (data['date'] as Timestamp).toDate();
 
-            final key = DateTime(date.year, date.month, date.day);
+            /// защита от краша
+            if (data['start'] == null || data['end'] == null) continue;
+
+            final start = (data['start'] as Timestamp).toDate().toLocal();
+            final end = (data['end'] as Timestamp).toDate().toLocal();
+
+            final key = _normalize(start);
 
             newEvents.putIfAbsent(key, () => []);
 
             newEvents[key]!.add(
               Event(
                 title: data['name'] ?? '',
-                date: date,
+                start: start,
+                end: end,
                 place: data['place'] ?? 'Не указано',
-                performers: (data['performers'] ?? '')
-                    .toString()
-                    .split(',')
-                    .where((e) => e.trim().isNotEmpty)
-                    .toList(),
-
-                equipment: (data['equipment'] ?? '')
-                    .toString()
-                    .split(',')
-                    .where((e) => e.trim().isNotEmpty)
-                    .toList(),
+                performers: (data['performers'] is List)
+                    ? List<String>.from(
+                        (data['performers'] as List).expand((e) {
+                          if (e is List) return e;
+                          return [e];
+                        }),
+                      ).map((e) => e.toString()).toList()
+                    : [],
+                equipment: (data['equipment'] is List)
+                    ? (data['equipment'] as List)
+                          .map((e) {
+                            if (e is Map && e['name'] != null) {
+                              return e['name'].toString();
+                            }
+                            return e.toString();
+                          })
+                          .where((e) => e.trim().isNotEmpty)
+                          .toList()
+                    : [],
               ),
             );
+          }
+
+          /// сортируем события по времени
+          for (var day in newEvents.keys) {
+            newEvents[day]!.sort((a, b) => a.start.compareTo(b.start));
           }
 
           setState(() {
@@ -106,21 +111,77 @@ class _MyWidgetState extends State<CoreScreen> {
         });
   }
 
-  bool _mapsEqual(Map a, Map b) {
-    if (a.length != b.length) return false;
-    for (var key in a.keys) {
-      if (!b.containsKey(key)) return false;
-      if (a[key].length != b[key].length) return false;
-    }
-    return true;
-  }
-
   List<Event> _getEventsForDay(DateTime day) {
-    final key = DateTime(day.year, day.month, day.day);
+    final key = _normalize(day);
     return events[key] ?? const [];
   }
 
-  void _onEventTap(Event event) {
+  /// 🔥 ФОРМАТ ВРЕМЕНИ
+  String formatTime(DateTime time) {
+    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+  }
+
+  /// 🔥 КЛИК ПО СОБЫТИЮ
+  void _onEventTap(Event event) async {
+    List<String> equipmentNames = [];
+    List<String> performerNames = [];
+
+    for (var group in event.performers) {
+      if (group is List) {
+        for (var uid in group) {
+          final id = uid.toString().trim();
+          if (id.isEmpty) continue;
+
+          try {
+            final doc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(id)
+                .get();
+
+            if (doc.exists) {
+              final data = doc.data();
+              final name = data?['name'];
+
+              performerNames.add(
+                (name != null && name.toString().isNotEmpty)
+                    ? name.toString()
+                    : id,
+              );
+            } else {
+              performerNames.add(id);
+            }
+          } catch (_) {
+            performerNames.add(id);
+          }
+        }
+      } else {
+        final id = group.toString();
+
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(id)
+            .get();
+
+        final name = doc.data()?['name'];
+
+        performerNames.add(name ?? id);
+      }
+    }
+
+    // 🛠 ОБОРУДОВАНИЕ
+    for (var e in event.equipment) {
+      if (e is Map && e['name'] != null) {
+        final name = e['name'].toString().trim();
+        if (name.isNotEmpty) {
+          equipmentNames.add(name);
+        }
+      } else if (e is String && e.trim().isNotEmpty) {
+        equipmentNames.add(e.trim());
+      }
+    }
+
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -129,30 +190,33 @@ class _MyWidgetState extends State<CoreScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("📅 Дата: ${event.date.toString().split(' ')[0]}"),
-              SizedBox(height: 5),
+              Text("📅 Дата: ${event.start.toString().split(' ')[0]}"),
+              const SizedBox(height: 5),
 
-              Text("📍 Место: ${event.place}"),
-              SizedBox(height: 5),
+              Text(
+                "⏰ ${formatTime(event.start)} - ${formatTime(event.end)}",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
 
-              Text("👥 Участники:"),
-              ...event.performers.map((p) => Text("• $p")),
+              const SizedBox(height: 10),
+              Text("📍 ${event.place}"),
 
-              SizedBox(height: 5),
+              const SizedBox(height: 10),
+              const Text("👥 Участники:"),
+              ...performerNames.map((p) => Text("• $p")),
 
-              Text("🛠 Оборудование:"),
-              ...event.equipment.map((e) => Text("• $e")),
+              const SizedBox(height: 10),
+              const Text("🛠 Оборудование:"),
+              ...equipmentNames.map((e) => Text("• $e")),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Закрыть"),
-          ),
-        ],
       ),
     );
+  }
+
+  DateTime _normalize(DateTime d) {
+    return DateTime(d.year, d.month, d.day);
   }
 
   void _onDayTap(DateTime day) {
@@ -160,17 +224,92 @@ class _MyWidgetState extends State<CoreScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (_) {
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: dayEvents.length,
-          itemBuilder: (_, i) {
-            final event = dayEvents[i];
-            return ListTile(
-              title: Text(event.title),
-              onTap: () => _onEventTap(event),
-            );
-          },
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.9,
+          child: SingleChildScrollView(
+            child: SizedBox(
+              height: 24 * 80, // вся высота дня
+              child: Stack(
+                children: [
+                  /// 🔥 ЛИНИЯ ВРЕМЕНИ (часы)
+                  Column(
+                    children: List.generate(24, (hour) {
+                      return Container(
+                        height: 80,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 60,
+                              child: Text(
+                                "$hour:00",
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            Expanded(child: Divider()),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+
+                  /// 🔥 СОБЫТИЯ
+                  ...dayEvents.map((event) {
+                    // 🔥 FIX: сдвиг +30 минут при отображении
+                    final fixedStart = event.start.add(
+                      const Duration(minutes: 30),
+                    );
+                    final fixedEnd = event.end.add(const Duration(minutes: 30));
+
+                    final startMinutes =
+                        fixedStart.hour * 60 + fixedStart.minute;
+                    final endMinutes = fixedEnd.hour * 60 + fixedEnd.minute;
+
+                    final top = startMinutes * (80 / 60);
+                    final height =
+                        (endMinutes - startMinutes).clamp(30, 10000) *
+                        (80 / 60);
+
+                    return Positioned(
+                      top: top,
+                      left: 70,
+                      right: 10,
+                      child: GestureDetector(
+                        onTap: () => _onEventTap(event),
+                        child: Container(
+                          height: height,
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "${event.title}\n${formatTime(event.start)}",
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+
+                  /// 🔥 ЕСЛИ НЕТ СОБЫТИЙ
+                  if (dayEvents.isEmpty)
+                    Positioned(
+                      top: 100,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Text(
+                          "Нет событий",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -209,37 +348,23 @@ class _MyWidgetState extends State<CoreScreen> {
                   rowHeight: 100,
                   startingDayOfWeek: StartingDayOfWeek.monday,
                   calendarFormat: _calendarFormat,
-                  availableCalendarFormats: const {
-                    CalendarFormat.month: 'Месяц',
-                    CalendarFormat.twoWeeks: '2 недели',
-                    CalendarFormat.week: 'Неделя',
-                  },
-                  onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  },
+
                   selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+
                   onDaySelected: (selected, focused) {
                     selectedDay = selected;
                     focusedDay = focused;
                     setState(() {});
                     _onDayTap(selected);
                   },
-                  onPageChanged: (focused) {
-                    focusedDay = focused;
-                  },
+
                   eventLoader: _getEventsForDay,
-                  calendarStyle: const CalendarStyle(
-                    markerDecoration: BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
                 ),
               ),
             ),
           ),
+
+          /// 👤 ПРОФИЛЬ
           Align(
             alignment: Alignment.topRight,
             child: IconButton(
@@ -252,9 +377,10 @@ class _MyWidgetState extends State<CoreScreen> {
         ],
       ),
 
+      /// 🔻 НИЖНЕЕ МЕНЮ
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
         color: Theme.of(context).primaryColor,
+        shape: const CircularNotchedRectangle(),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -263,7 +389,7 @@ class _MyWidgetState extends State<CoreScreen> {
               icon: const Icon(Icons.date_range),
             ),
             IconButton(
-              onPressed: () => ListPeople(context),
+              onPressed: () => ListPeople(context, widget.calendarId),
               icon: const Icon(Icons.group),
             ),
             const SizedBox(width: 40),
@@ -281,15 +407,15 @@ class _MyWidgetState extends State<CoreScreen> {
         ),
       ),
 
+      /// ➕ ДОБАВИТЬ СОБЫТИЕ
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           CelebrationAdd(context, widget.calendarId);
         },
         child: Icon(Icons.add),
-        backgroundColor: Theme.of(context).primaryColor,
         shape: CircleBorder(),
+        backgroundColor: Theme.of(context).primaryColor,
       ),
-
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

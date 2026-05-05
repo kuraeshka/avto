@@ -82,21 +82,83 @@ class _SettingsWindowState extends State<SettingsWindow> {
   }
 
   Future<void> _loadParticipants() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('calendars')
-        .doc(widget.calendarId)
-        .collection('members')
+  final snapshot = await FirebaseFirestore.instance
+      .collection('calendars')
+      .doc(widget.calendarId)
+      .collection('members')
+      .get();
+
+  final List<String> users = [];
+
+  for (var doc in snapshot.docs) {
+    final uid = doc.id;
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
         .get();
 
-    final List<String> users = [];
+    final name = userDoc.data()?['name'];
 
-    for (var doc in snapshot.docs) {
-      users.add(doc.id); // пока просто UID
-    }
+    users.add(name ?? uid);
+  }
 
-    setState(() {
-      participants = users;
-    });
+  setState(() {
+    participants = users;
+  });
+}
+
+  Future<void> _editEquipment(int index) async {
+    final item = equipment[index];
+
+    final nameController = TextEditingController(text: item['name']);
+    final placeController = TextEditingController(text: item['place']);
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: Text("Редактировать"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: "Наименование"),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: placeController,
+                decoration: InputDecoration(labelText: "Место"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                equipment[index] = {
+                  'name': nameController.text,
+                  'place': placeController.text,
+                };
+
+                await FirebaseFirestore.instance
+                    .collection('calendars')
+                    .doc(widget.calendarId)
+                    .update({'equipment': equipment});
+
+                setState(() {});
+                Navigator.pop(context);
+              },
+              child: Text("Сохранить"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _listenCalendar() {
@@ -243,6 +305,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
                 return ListTile(
                   title: Text(item['name'] ?? ''),
                   subtitle: Text("📍 ${item['place'] ?? 'Не указано'}"),
+                  onLongPress: () =>
+                      _editEquipment(i), // 👈 двойной тап не очень надежен
                 );
               },
             ),
@@ -309,7 +373,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
                 Row(
                   children: [
                     _listBlock("Участники", participants),
-                    _equipmentBlock()
+                    _equipmentBlock(),
                   ],
                 ),
 

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:avto/Widget/Profil_widget/history.dart';
 
 class ProfilWindow extends StatefulWidget {
   const ProfilWindow({super.key});
@@ -38,10 +39,7 @@ class _ProfilWindowState extends State<ProfilWindow> {
       avatarIndex = data['avatar'] ?? 0;
     } else {
       /// 🔥 создаём пользователя если нет
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user!.uid)
-          .set({
+      await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
         'name': 'Без имени',
         'avatar': 0,
         'createdAt': FieldValue.serverTimestamp(),
@@ -56,16 +54,13 @@ class _ProfilWindowState extends State<ProfilWindow> {
   }
 
   Future<void> _saveName() async {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .update({
+    await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
       'name': nameController.text,
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Имя сохранено")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Имя сохранено")));
   }
 
   Future<void> _setAvatar(int index) async {
@@ -73,10 +68,7 @@ class _ProfilWindowState extends State<ProfilWindow> {
       avatarIndex = index;
     });
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .update({
+    await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
       'avatar': index,
     });
   }
@@ -91,16 +83,14 @@ class _ProfilWindowState extends State<ProfilWindow> {
             margin: EdgeInsets.all(8),
             decoration: BoxDecoration(
               border: Border.all(
-                color:
-                    avatarIndex == index ? Colors.blue : Colors.transparent,
+                color: avatarIndex == index ? Colors.blue : Colors.transparent,
                 width: 3,
               ),
               shape: BoxShape.circle,
             ),
             child: CircleAvatar(
               radius: 35,
-              backgroundImage:
-                  AssetImage('assets/avatarsp/avatar$index.png'),
+              backgroundImage: AssetImage('assets/avatarsp/avatar$index.png'),
             ),
           ),
         );
@@ -111,9 +101,7 @@ class _ProfilWindowState extends State<ProfilWindow> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -135,12 +123,10 @@ class _ProfilWindowState extends State<ProfilWindow> {
             ),
             child: Column(
               children: [
-                /// 🔥 АВАТАР
                 _avatarSelector(),
 
                 SizedBox(height: 10),
 
-                /// 🔥 EMAIL
                 Text(
                   user?.email ?? "Нет email",
                   style: TextStyle(fontSize: 16),
@@ -148,7 +134,6 @@ class _ProfilWindowState extends State<ProfilWindow> {
 
                 SizedBox(height: 10),
 
-                /// 🔥 ИМЯ
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -160,17 +145,23 @@ class _ProfilWindowState extends State<ProfilWindow> {
                   ),
                 ),
 
-                Spacer(),
+                SizedBox(height: 20),
+
+                Expanded(
+                  child: UserEventsWidget(
+                  )
+                ),
+
+                SizedBox(height: 10),
 
                 /// 🔥 ВЫХОД
                 ElevatedButton(
                   onPressed: () async {
                     await FirebaseAuth.instance.signOut();
 
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/',
-                      (route) => false,
-                    );
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/', (route) => false);
                   },
                   child: Text("Выйти из аккаунта"),
                 ),

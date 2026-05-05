@@ -1,4 +1,3 @@
-import 'package:avto/Widget/RowCalendar/FormAddCalendar.dart';
 import 'package:avto/Widget/RowCalendar/FormConnectCalendar.dart';
 import 'package:avto/frontend/Screens/Core_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,11 +11,11 @@ void Row_Calendar(BuildContext context) {
     context: context,
     builder: (context) {
       return SizedBox(
-        height: 250,
+        height: 300,
         child: Column(
           children: [
             const SizedBox(height: 10),
-            Text("Список календарей"),
+            const Text("Список календарей"),
             const SizedBox(height: 10),
 
             Expanded(
@@ -38,30 +37,72 @@ void Row_Calendar(BuildContext context) {
                     children: docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
 
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CoreScreen(calendarId: doc.id),
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('calendars')
+                            .doc(doc.id)
+                            .get(),
+                        builder: (context, calendarSnap) {
+                          if (!calendarSnap.hasData) {
+                            return const SizedBox(
+                              width: 160,
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
+
+                          final cal =
+                              calendarSnap.data!.data()
+                                  as Map<String, dynamic>? ??
+                              {};
+
+                          final name = cal['name'] ?? '';
+                          final avatar = cal['avatar'] ?? 0;
+
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      CoreScreen(calendarId: doc.id),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 160,
+                              margin: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 28,
+                                    backgroundImage: AssetImage(
+                                      'assets/avatarsc/avatar$avatar.png',
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 10),
+
+                                  Text(
+                                    name,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
-                        child: Container(
-                          width: 300,
-                          margin: const EdgeInsets.all(8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              data['name'] ?? '',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
                       );
                     }).toList(),
                   );
