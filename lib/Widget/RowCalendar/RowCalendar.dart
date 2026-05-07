@@ -35,7 +35,6 @@ void Row_Calendar(BuildContext context) {
                   return ListView(
                     scrollDirection: Axis.horizontal,
                     children: docs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
 
                       return FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance

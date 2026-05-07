@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class SettingsWindow extends StatefulWidget {
-  const SettingsWindow({super.key, required this.calendarId});
+  const SettingsWindow({
+    super.key,
+    required this.calendarId,
+    required this.currentUserId,
+  });
+
   final String calendarId;
+  final String currentUserId;
 
   @override
   State<SettingsWindow> createState() => _SettingsWindowState();
@@ -12,197 +18,114 @@ class SettingsWindow extends StatefulWidget {
 
 class _SettingsWindowState extends State<SettingsWindow> {
   int selectedAvatar = 0;
+
   TextEditingController nameController = TextEditingController();
 
   String calendarCode = "";
-  List participants = [];
+
+  List<Map<String, dynamic>> participants = [];
+
   List equipment = [];
 
-  @override
+  String currentUserRole = "member";
+
   @override
   void initState() {
     super.initState();
+
     _listenCalendar();
+    _loadCurrentUserRole();
     _loadParticipants();
   }
 
-  Future<void> _addEquipment() async {
-    final nameController = TextEditingController();
-    final placeController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: Text("Добавить оборудование"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: "Наименование"),
-              ),
-              SizedBox(height: 10),
-              TextField(
-                controller: placeController,
-                decoration: InputDecoration(labelText: "Местоположение"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("Отмена"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final place = placeController.text.trim();
-
-                if (name.isEmpty) return;
-
-                final newItem = {'name': name, 'place': place};
-
-                final updatedList = List.from(equipment);
-                updatedList.add(newItem);
-
-                await FirebaseFirestore.instance
-                    .collection('calendars')
-                    .doc(widget.calendarId)
-                    .update({'equipment': updatedList});
-
-                Navigator.pop(context);
-              },
-              child: Text("Добавить"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _loadParticipants() async {
-  final snapshot = await FirebaseFirestore.instance
-      .collection('calendars')
-      .doc(widget.calendarId)
-      .collection('members')
-      .get();
-
-  final List<String> users = [];
-
-  for (var doc in snapshot.docs) {
-    final uid = doc.id;
-
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
+  /// =========================================
+  /// РОЛЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+  /// =========================================
+  Future<void> _loadCurrentUserRole() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .collection('members')
+        .doc(widget.currentUserId)
         .get();
 
-    final name = userDoc.data()?['name'];
-
-    users.add(name ?? uid);
+    setState(() {
+      currentUserRole = doc.data()?['role'] ?? 'member';
+    });
   }
 
-  setState(() {
-    participants = users;
-  });
-}
+  /// =========================================
+  /// ЗАГРУЗКА УЧАСТНИКОВ
+  /// =========================================
+  Future<void> _loadParticipants() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .collection('members')
+        .get();
 
-  Future<void> _editEquipment(int index) async {
-    final item = equipment[index];
+    final List<Map<String, dynamic>> users = [];
 
-    final nameController = TextEditingController(text: item['name']);
-    final placeController = TextEditingController(text: item['place']);
+    for (var doc in snapshot.docs) {
+      final uid = doc.id;
+      final memberData = doc.data();
 
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: Text("Редактировать"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: "Наименование"),
-              ),
-              SizedBox(height: 10),
-              TextField(
-                controller: placeController,
-                decoration: InputDecoration(labelText: "Место"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("Отмена"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                equipment[index] = {
-                  'name': nameController.text,
-                  'place': placeController.text,
-                };
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
 
-                await FirebaseFirestore.instance
-                    .collection('calendars')
-                    .doc(widget.calendarId)
-                    .update({'equipment': equipment});
+      final data = userDoc.data();
 
-                setState(() {});
-                Navigator.pop(context);
-              },
-              child: Text("Сохранить"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _listenCalendar() {
-    if (widget.calendarId.isEmpty) {
-      print("ERROR: calendarId is empty");
-      return;
+      users.add({
+        'uid': uid,
+        'name': data?['name'] ?? 'Без имени',
+        'avatar': data?['avatar'] ?? 0,
+        'role': memberData['role'] ?? 'observer',
+      });
     }
+
+    setState(() {
+      participants = users;
+    });
+  }
+
+  /// =========================================
+  /// СЛУШАЕМ КАЛЕНДАРЬ
+  /// =========================================
+  void _listenCalendar() {
     FirebaseFirestore.instance
         .collection('calendars')
         .doc(widget.calendarId)
         .snapshots()
-        .listen((doc) async {
-          final data = doc.data();
+        .listen((doc) {
+      final data = doc.data();
+      if (data == null) return;
 
-          if (data == null) return;
-
-          String code = data['code'] ?? '';
-
-          /// 🔥 если нет кода — создаём
-          if (code.isEmpty) {
-            code = DateTime.now().millisecondsSinceEpoch.toString();
-
-            await FirebaseFirestore.instance
-                .collection('calendars')
-                .doc(widget.calendarId)
-                .update({'code': code});
-          }
-
-          setState(() {
-            nameController.text = data['name'] ?? '';
-            calendarCode = code;
-            selectedAvatar = data['avatar'] ?? 0;
-            equipment = data['equipment'] ?? [];
-          });
-        });
+      setState(() {
+        nameController.text = data['name'] ?? '';
+        calendarCode = data['code'] ?? '';
+        selectedAvatar = data['avatar'] ?? 0;
+        equipment = data['equipment'] ?? [];
+      });
+    });
   }
 
+  /// =========================================
+  /// СОХРАНИТЬ НАЗВАНИЕ
+  /// =========================================
   Future<void> _saveName() async {
     await FirebaseFirestore.instance
         .collection('calendars')
         .doc(widget.calendarId)
-        .update({'name': nameController.text});
+        .update({
+      'name': nameController.text,
+    });
   }
 
+  /// =========================================
+  /// СМЕНИТЬ АВАТАР
+  /// =========================================
   Future<void> _setAvatar(int index) async {
     setState(() {
       selectedAvatar = index;
@@ -211,30 +134,188 @@ class _SettingsWindowState extends State<SettingsWindow> {
     await FirebaseFirestore.instance
         .collection('calendars')
         .doc(widget.calendarId)
-        .update({'avatar': index});
+        .update({
+      'avatar': index,
+    });
   }
 
-  void _copyCode() {
-    print("COPY CODE: $calendarCode");
+  /// =========================================
+  /// СМЕНА РОЛИ (С ЗАЩИТОЙ)
+  /// =========================================
+  Future<void> _changeRole(String uid, String role) async {
+    final memberDoc = await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .collection('members')
+        .doc(uid)
+        .get();
 
-    if (calendarCode.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Код ещё загружается...")));
+    final targetRole = memberDoc.data()?['role'];
+
+    /// ❌ НЕЛЬЗЯ МЕНЯТЬ АДМИНА
+    if (targetRole == "admin") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Нельзя изменить роль администратора"),
+        ),
+      );
       return;
     }
 
+    await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .collection('members')
+        .doc(uid)
+        .update({'role': role});
+
+    _loadParticipants();
+  }
+
+  /// =========================================
+  /// BOTTOM SHEET РОЛЕЙ
+  /// =========================================
+  void _showRoleSheet(String uid) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text("Наблюдатель"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _changeRole(uid, "observer");
+                },
+              ),
+              ListTile(
+                title: const Text("Исполнитель"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _changeRole(uid, "executor");
+                },
+              ),
+              ListTile(
+                title: const Text("Менеджер"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _changeRole(uid, "manager");
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// =========================================
+  /// КОПИРОВАТЬ КОД
+  /// =========================================
+  void _copyCode() {
     Clipboard.setData(ClipboardData(text: calendarCode));
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Скопировано: $calendarCode")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Скопировано: $calendarCode")),
+    );
   }
 
   void _leaveCalendar() {
     Navigator.pop(context);
   }
 
+  /// =========================================
+  /// СПИСОК УЧАСТНИКОВ
+  /// =========================================
+  Widget _listBlock(String title) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          Expanded(
+            child: participants.isEmpty
+                ? const Center(child: Text("Нет участников"))
+                : ListView.builder(
+                    itemCount: participants.length,
+                    itemBuilder: (_, i) {
+                      final user = participants[i];
+
+                      return Card(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: AssetImage(
+                              'assets/avatarsp/avatar${user['avatar']}.png',
+                            ),
+                          ),
+
+                          title: Text(user['name']),
+
+                          subtitle: Text("Роль: ${user['role']}"),
+
+                          /// 🔒 КНОПКА ТОЛЬКО ДЛЯ НЕ-АДМИНОВ
+                          trailing: (currentUserRole == "admin" &&
+                                  user['role'] != "admin")
+                              ? TextButton(
+                                  onPressed: () =>
+                                      _showRoleSheet(user['uid']),
+                                  child: const Text("Сменить роль"),
+                                )
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// =========================================
+  /// ОБОРУДОВАНИЕ
+  /// =========================================
+  Widget _equipmentBlock() {
+    return Expanded(
+      child: Column(
+        children: [
+          const Text(
+            "Оборудование",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: equipment.length,
+              itemBuilder: (_, i) {
+                final item = equipment[i];
+
+                return Card(
+                  child: ListTile(
+                    title: Text(item['name'] ?? ''),
+                    subtitle: Text("📍 ${item['place'] ?? ''}"),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// =========================================
+  /// АВАТАРЫ
+  /// =========================================
   Widget _avatarSelector() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -242,7 +323,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
         return GestureDetector(
           onTap: () => _setAvatar(index),
           child: Container(
-            margin: EdgeInsets.all(8),
+            margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               border: Border.all(
                 color: selectedAvatar == index
@@ -254,7 +335,9 @@ class _SettingsWindowState extends State<SettingsWindow> {
             ),
             child: CircleAvatar(
               radius: 30,
-              backgroundImage: AssetImage('assets/avatarsc/avatar$index.png'),
+              backgroundImage: AssetImage(
+                'assets/avatarsc/avatar$index.png',
+              ),
             ),
           ),
         );
@@ -262,66 +345,17 @@ class _SettingsWindowState extends State<SettingsWindow> {
     );
   }
 
-  Widget _listBlock(String title, List data) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-          SizedBox(
-            height: 200,
-            child: ListView.builder(
-              itemCount: data.length,
-              itemBuilder: (_, i) {
-                return ListTile(title: Text(data[i].toString()));
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _equipmentBlock() {
-    return Expanded(
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Оборудование",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              IconButton(icon: Icon(Icons.add), onPressed: _addEquipment),
-            ],
-          ),
-          SizedBox(
-            height: 200,
-            child: ListView.builder(
-              itemCount: equipment.length,
-              itemBuilder: (_, i) {
-                final item = equipment[i];
-
-                return ListTile(
-                  title: Text(item['name'] ?? ''),
-                  subtitle: Text("📍 ${item['place'] ?? 'Не указано'}"),
-                  onLongPress: () =>
-                      _editEquipment(i), // 👈 двойной тап не очень надежен
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  /// =========================================
+  /// UI
+  /// =========================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Настройки календаря')),
+      appBar: AppBar(
+        title: const Text('Настройки календаря'),
+      ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/images/seaback.jpg'),
             fit: BoxFit.cover,
@@ -329,63 +363,66 @@ class _SettingsWindowState extends State<SettingsWindow> {
         ),
         child: Center(
           child: Container(
-            width: 600,
-            padding: EdgeInsets.all(16),
+            width: 700,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Column(
               children: [
-                /// 🔥 АВАТАР
                 _avatarSelector(),
 
-                /// 🔥 ИМЯ
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
                     labelText: "Название календаря",
                     suffixIcon: IconButton(
-                      icon: Icon(Icons.save),
+                      icon: const Icon(Icons.save),
                       onPressed: _saveName,
                     ),
                   ),
                 ),
 
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-                /// 🔥 КОД
                 Row(
                   children: [
                     Expanded(
                       child: SelectableText(
                         "Код: $calendarCode",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    IconButton(icon: Icon(Icons.copy), onPressed: _copyCode),
+                    IconButton(
+                      icon: const Icon(Icons.copy),
+                      onPressed: _copyCode,
+                    ),
                   ],
                 ),
 
-                SizedBox(height: 10),
+                const SizedBox(height: 20),
 
-                /// 🔥 СПИСКИ
-                Row(
-                  children: [
-                    _listBlock("Участники", participants),
-                    _equipmentBlock(),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      _listBlock("Участники"),
+                      const SizedBox(width: 20),
+                      _equipmentBlock(),
+                    ],
+                  ),
                 ),
 
-                Spacer(),
+                const SizedBox(height: 20),
 
-                /// 🔥 ВЫХОД
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
                     onPressed: _leaveCalendar,
-                    child: Text("Выйти из календаря"),
+                    child: const Text("Выйти из календаря"),
                   ),
                 ),
               ],

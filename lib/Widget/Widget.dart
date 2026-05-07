@@ -7,3 +7,5 @@ export 'package:avto/Widget/Profil_widget/Info.dart';
 export 'Profil_widget/history.dart';
 export 'Settings_widget/Avatar_settings.dart';
 export 'Settings_widget/info_calendar.dart';
+export 'package:avto/Widget/Core_widget/Edit_event.dart';
+export 'package:avto/Widget/Core_widget/On_event_tap.dart';

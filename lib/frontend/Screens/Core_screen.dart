@@ -1,18 +1,21 @@
 import 'dart:async';
+
 import 'package:avto/Widget/Widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class Event {
+  final String id;
   final String title;
   final DateTime start;
   final DateTime end;
   final String place;
-  final List performers;
-  final List equipment;
+  final List<String> performers;
+  final List<String> equipment;
 
   Event({
+    required this.id,
     required this.title,
     required this.start,
     required this.end,
@@ -24,6 +27,7 @@ class Event {
 
 class CoreScreen extends StatefulWidget {
   const CoreScreen({super.key, required this.calendarId});
+
   final String calendarId;
 
   @override
@@ -46,7 +50,6 @@ class _MyWidgetState extends State<CoreScreen> {
     _listenEvents();
   }
 
-  /// 🔥 СЛУШАЕМ СОБЫТИЯ
   void _listenEvents() {
     _subscription = FirebaseFirestore.instance
         .collection('calendars')
@@ -59,7 +62,6 @@ class _MyWidgetState extends State<CoreScreen> {
           for (var doc in snapshot.docs) {
             final data = doc.data();
 
-            /// защита от краша
             if (data['start'] == null || data['end'] == null) continue;
 
             final start = (data['start'] as Timestamp).toDate().toLocal();
@@ -71,10 +73,12 @@ class _MyWidgetState extends State<CoreScreen> {
 
             newEvents[key]!.add(
               Event(
+                id: doc.id,
                 title: data['name'] ?? '',
                 start: start,
                 end: end,
                 place: data['place'] ?? 'Не указано',
+
                 performers: (data['performers'] is List)
                     ? List<String>.from(
                         (data['performers'] as List).expand((e) {
@@ -83,6 +87,7 @@ class _MyWidgetState extends State<CoreScreen> {
                         }),
                       ).map((e) => e.toString()).toList()
                     : [],
+
                 equipment: (data['equipment'] is List)
                     ? (data['equipment'] as List)
                           .map((e) {
@@ -98,7 +103,7 @@ class _MyWidgetState extends State<CoreScreen> {
             );
           }
 
-          /// сортируем события по времени
+          /// сортировка
           for (var day in newEvents.keys) {
             newEvents[day]!.sort((a, b) => a.start.compareTo(b.start));
           }
@@ -116,103 +121,8 @@ class _MyWidgetState extends State<CoreScreen> {
     return events[key] ?? const [];
   }
 
-  /// 🔥 ФОРМАТ ВРЕМЕНИ
   String formatTime(DateTime time) {
     return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-  }
-
-  /// 🔥 КЛИК ПО СОБЫТИЮ
-  void _onEventTap(Event event) async {
-    List<String> equipmentNames = [];
-    List<String> performerNames = [];
-
-    for (var group in event.performers) {
-      if (group is List) {
-        for (var uid in group) {
-          final id = uid.toString().trim();
-          if (id.isEmpty) continue;
-
-          try {
-            final doc = await FirebaseFirestore.instance
-                .collection('users')
-                .doc(id)
-                .get();
-
-            if (doc.exists) {
-              final data = doc.data();
-              final name = data?['name'];
-
-              performerNames.add(
-                (name != null && name.toString().isNotEmpty)
-                    ? name.toString()
-                    : id,
-              );
-            } else {
-              performerNames.add(id);
-            }
-          } catch (_) {
-            performerNames.add(id);
-          }
-        }
-      } else {
-        final id = group.toString();
-
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(id)
-            .get();
-
-        final name = doc.data()?['name'];
-
-        performerNames.add(name ?? id);
-      }
-    }
-
-    // 🛠 ОБОРУДОВАНИЕ
-    for (var e in event.equipment) {
-      if (e is Map && e['name'] != null) {
-        final name = e['name'].toString().trim();
-        if (name.isNotEmpty) {
-          equipmentNames.add(name);
-        }
-      } else if (e is String && e.trim().isNotEmpty) {
-        equipmentNames.add(e.trim());
-      }
-    }
-
-    if (!context.mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(event.title),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("📅 Дата: ${event.start.toString().split(' ')[0]}"),
-              const SizedBox(height: 5),
-
-              Text(
-                "⏰ ${formatTime(event.start)} - ${formatTime(event.end)}",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 10),
-              Text("📍 ${event.place}"),
-
-              const SizedBox(height: 10),
-              const Text("👥 Участники:"),
-              ...performerNames.map((p) => Text("• $p")),
-
-              const SizedBox(height: 10),
-              const Text("🛠 Оборудование:"),
-              ...equipmentNames.map((e) => Text("• $e")),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   DateTime _normalize(DateTime d) {
@@ -230,13 +140,13 @@ class _MyWidgetState extends State<CoreScreen> {
           height: MediaQuery.of(context).size.height * 0.9,
           child: SingleChildScrollView(
             child: SizedBox(
-              height: 24 * 80, // вся высота дня
+              height: 24 * 80,
               child: Stack(
                 children: [
-                  /// 🔥 ЛИНИЯ ВРЕМЕНИ (часы)
+                  /// 🔥 ШКАЛА ВРЕМЕНИ
                   Column(
                     children: List.generate(24, (hour) {
-                      return Container(
+                      return SizedBox(
                         height: 80,
                         child: Row(
                           children: [
@@ -244,10 +154,10 @@ class _MyWidgetState extends State<CoreScreen> {
                               width: 60,
                               child: Text(
                                 "$hour:00",
-                                style: TextStyle(fontSize: 12),
+                                style: const TextStyle(fontSize: 12),
                               ),
                             ),
-                            Expanded(child: Divider()),
+                            const Expanded(child: Divider()),
                           ],
                         ),
                       );
@@ -256,17 +166,13 @@ class _MyWidgetState extends State<CoreScreen> {
 
                   /// 🔥 СОБЫТИЯ
                   ...dayEvents.map((event) {
-                    // 🔥 FIX: сдвиг +30 минут при отображении
-                    final fixedStart = event.start.add(
-                      const Duration(minutes: 30),
-                    );
-                    final fixedEnd = event.end.add(const Duration(minutes: 30));
-
                     final startMinutes =
-                        fixedStart.hour * 60 + fixedStart.minute;
-                    final endMinutes = fixedEnd.hour * 60 + fixedEnd.minute;
+                        event.start.hour * 60 + event.start.minute;
+
+                    final endMinutes = event.end.hour * 60 + event.end.minute;
 
                     final top = startMinutes * (80 / 60);
+
                     final height =
                         (endMinutes - startMinutes).clamp(30, 10000) *
                         (80 / 60);
@@ -276,10 +182,11 @@ class _MyWidgetState extends State<CoreScreen> {
                       left: 70,
                       right: 10,
                       child: GestureDetector(
-                        onTap: () => _onEventTap(event),
+                        onTap: () =>
+                            onEventTap(event, context, widget.calendarId),
                         child: Container(
                           height: height,
-                          padding: EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.blue.withOpacity(0.6),
                             borderRadius: BorderRadius.circular(8),
@@ -295,7 +202,7 @@ class _MyWidgetState extends State<CoreScreen> {
 
                   /// 🔥 ЕСЛИ НЕТ СОБЫТИЙ
                   if (dayEvents.isEmpty)
-                    Positioned(
+                    const Positioned(
                       top: 100,
                       left: 0,
                       right: 0,
@@ -333,28 +240,43 @@ class _MyWidgetState extends State<CoreScreen> {
                 fit: BoxFit.cover,
               ),
             ),
+
             child: Center(
               child: Container(
                 width: 900,
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
+
                 decoration: BoxDecoration(
                   color: Colors.white24,
                   borderRadius: BorderRadius.circular(10),
                 ),
+
                 child: TableCalendar<Event>(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2030, 12, 31),
+
                   focusedDay: focusedDay,
+
                   rowHeight: 100,
+
                   startingDayOfWeek: StartingDayOfWeek.monday,
+
                   calendarFormat: _calendarFormat,
 
-                  selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+                  availableCalendarFormats: const {
+                    CalendarFormat.month: 'Месяц',
+                  },
+
+                  selectedDayPredicate: (day) {
+                    return isSameDay(selectedDay, day);
+                  },
 
                   onDaySelected: (selected, focused) {
                     selectedDay = selected;
                     focusedDay = focused;
+
                     setState(() {});
+
                     _onDayTap(selected);
                   },
 
@@ -371,7 +293,7 @@ class _MyWidgetState extends State<CoreScreen> {
               onPressed: () {
                 Navigator.of(context).pushNamed('/Profil');
               },
-              icon: Icon(Icons.person),
+              icon: const Icon(Icons.person),
             ),
           ),
         ],
@@ -381,6 +303,7 @@ class _MyWidgetState extends State<CoreScreen> {
       bottomNavigationBar: BottomAppBar(
         color: Theme.of(context).primaryColor,
         shape: const CircularNotchedRectangle(),
+
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -388,17 +311,21 @@ class _MyWidgetState extends State<CoreScreen> {
               onPressed: () => Row_Calendar(context),
               icon: const Icon(Icons.date_range),
             ),
+
             IconButton(
               onPressed: () => ListPeople(context, widget.calendarId),
               icon: const Icon(Icons.group),
             ),
+
             const SizedBox(width: 40),
+
             IconButton(
               onPressed: () => Navigator.of(
                 context,
               ).pushNamed('/Settings', arguments: widget.calendarId),
               icon: const Icon(Icons.settings),
             ),
+
             IconButton(
               onPressed: () => choice(),
               icon: const Icon(Icons.brightness_3),
@@ -412,10 +339,14 @@ class _MyWidgetState extends State<CoreScreen> {
         onPressed: () {
           CelebrationAdd(context, widget.calendarId);
         },
-        child: Icon(Icons.add),
-        shape: CircleBorder(),
+
+        shape: const CircleBorder(),
+
         backgroundColor: Theme.of(context).primaryColor,
+
+        child: const Icon(Icons.add),
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

@@ -44,66 +44,57 @@ class UserEventsWidget extends StatelessWidget {
         }).toList();
 
         if (filtered.isEmpty) {
-          return const Text("Нет посещённых событий");
+          return const Center(
+            child: Text("Нет посещённых событий"),
+          );
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Посещённые события",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
+        return ListView.builder(
+          itemCount: filtered.length,
+          itemBuilder: (_, i) {
+            final data =
+                filtered[i].data() as Map<String, dynamic>;
 
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filtered.length,
-              itemBuilder: (_, i) {
-                final data = filtered[i].data() as Map<String, dynamic>;
+            final start =
+                (data['start'] as Timestamp?)?.toDate();
+            final end =
+                (data['end'] as Timestamp?)?.toDate();
 
-                final start = (data['start'] as Timestamp?)?.toDate();
-                final end = (data['end'] as Timestamp?)?.toDate();
+            final calendarId =
+                filtered[i].reference.parent.parent!.id;
 
-                final calendarId =
-                    filtered[i].reference.parent.parent!.id;
+            return FutureBuilder<Map<String, dynamic>>(
+              future: getCalendar(calendarId),
+              builder: (context, snap) {
+                final cal = snap.data ?? {};
+                final name = cal['name'] ?? 'Без названия';
+                final avatar = cal['avatar'] ?? 0;
 
-                return FutureBuilder<Map<String, dynamic>>(
-                  future: getCalendar(calendarId),
-                  builder: (context, snap) {
-                    final cal = snap.data ?? {};
-                    final name = cal['name'] ?? 'Без названия';
-                    final avatar = cal['avatar'] ?? 0;
-
-                    return Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundImage: AssetImage(
-                            'assets/avatarsc/avatar$avatar.png',
-                          ),
-                        ),
-
-                        title: Text(data['name'] ?? ''),
-
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("📅 $name"),
-
-                            if (start != null && end != null)
-                              Text(
-                                "⏰ ${formatTime(start)} - ${formatTime(end)}",
-                              ),
-                          ],
-                        ),
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: AssetImage(
+                        'assets/avatarsc/avatar$avatar.png',
                       ),
-                    );
-                  },
+                    ),
+
+                    title: Text(data['name'] ?? ''),
+
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("📅 $name"),
+                        if (start != null && end != null)
+                          Text(
+                            "⏰ ${formatTime(start)} - ${formatTime(end)}",
+                          ),
+                      ],
+                    ),
+                  ),
                 );
               },
-            ),
-          ],
+            );
+          },
         );
       },
     );
