@@ -1,5 +1,7 @@
+import 'package:avto/Core/Theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:avto/Widget/Widget.dart';
 
 class AuthenticationWindow extends StatefulWidget {
   const AuthenticationWindow({super.key});
@@ -19,10 +21,11 @@ class _AuthenticationWindowState extends State<AuthenticationWindow> {
         width: double.infinity,
         height: double.infinity,
 
-        // 🔥 ФОН (гарантированно работает на web)
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/seaback.jpg'),
+            image: ThemeDataChoice.value == White_ThemeData
+                    ? const AssetImage('assets/images/seaback.jpg')
+                    : const AssetImage('assets/images/greyback.jpg'),
             fit: BoxFit.cover,
           ),
         ),

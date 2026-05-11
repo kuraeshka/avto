@@ -8,6 +8,9 @@ final White_ThemeData = ThemeData(
   ),
 );
 final Black_ThemeData = ThemeData(
-  primaryColor: Colors.orangeAccent,
-  scaffoldBackgroundColor: Colors.blue,
+  primaryColor: Colors.blueGrey,
+  scaffoldBackgroundColor: const Color.fromARGB(255, 133, 160, 174),
+  appBarTheme: const AppBarThemeData(
+    backgroundColor: Color.fromARGB(255, 133, 160, 174),
+  ),
 );

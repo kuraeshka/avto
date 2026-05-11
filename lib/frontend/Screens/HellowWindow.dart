@@ -1,3 +1,4 @@
+import 'package:avto/Core/Theme.dart';
 import 'package:avto/Widget/Widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -89,7 +90,9 @@ class _HelloWindowState extends State<HelloWindow> {
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/seaback.jpg'),
+                image: ThemeDataChoice.value == White_ThemeData
+                    ? const AssetImage('assets/images/seaback.jpg')
+                    : const AssetImage('assets/images/greyback.jpg'),
                 fit: BoxFit.cover,
               ),
             ),

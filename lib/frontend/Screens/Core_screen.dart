@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:avto/Core/Theme.dart';
 import 'package:avto/Widget/Widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -13,6 +15,7 @@ class Event {
   final String place;
   final List<String> performers;
   final List<String> equipment;
+  final String importance;
 
   Event({
     required this.id,
@@ -22,6 +25,7 @@ class Event {
     required this.place,
     required this.performers,
     required this.equipment,
+    required this.importance,
   });
 }
 
@@ -44,12 +48,40 @@ class _MyWidgetState extends State<CoreScreen> {
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
+  String currentUserRole = "observer";
+
+  bool get canEdit =>
+      currentUserRole == "admin" || currentUserRole == "manager";
+
   @override
   void initState() {
     super.initState();
+
+    _loadRole();
     _listenEvents();
   }
 
+  /// =========================================
+  /// ЗАГРУЗКА РОЛИ
+  /// =========================================
+  Future<void> _loadRole() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .collection('members')
+        .doc(uid)
+        .get();
+
+    setState(() {
+      currentUserRole = doc.data()?['role'] ?? 'observer';
+    });
+  }
+
+  /// =========================================
+  /// СОБЫТИЯ
+  /// =========================================
   void _listenEvents() {
     _subscription = FirebaseFirestore.instance
         .collection('calendars')
@@ -65,6 +97,7 @@ class _MyWidgetState extends State<CoreScreen> {
             if (data['start'] == null || data['end'] == null) continue;
 
             final start = (data['start'] as Timestamp).toDate().toLocal();
+
             final end = (data['end'] as Timestamp).toDate().toLocal();
 
             final key = _normalize(start);
@@ -99,6 +132,8 @@ class _MyWidgetState extends State<CoreScreen> {
                           .where((e) => e.trim().isNotEmpty)
                           .toList()
                     : [],
+
+                importance: data['importance'] ?? 'blue',
               ),
             );
           }
@@ -116,8 +151,25 @@ class _MyWidgetState extends State<CoreScreen> {
         });
   }
 
+  /// =========================================
+  /// ЦВЕТ СОБЫТИЯ
+  /// =========================================
+  Color getEventColor(String importance) {
+    switch (importance) {
+      case "red":
+        return Colors.red;
+
+      case "black":
+        return Colors.black87;
+
+      default:
+        return Colors.blue;
+    }
+  }
+
   List<Event> _getEventsForDay(DateTime day) {
     final key = _normalize(day);
+
     return events[key] ?? const [];
   }
 
@@ -129,94 +181,130 @@ class _MyWidgetState extends State<CoreScreen> {
     return DateTime(d.year, d.month, d.day);
   }
 
+  /// =========================================
+  /// ОТКРЫТИЕ ДНЯ
+  /// =========================================
   void _onDayTap(DateTime day) {
-    final dayEvents = _getEventsForDay(day);
+    const double hourHeight = 40;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) {
-        return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.9,
-          child: SingleChildScrollView(
-            child: SizedBox(
-              height: 24 * 80,
-              child: Stack(
-                children: [
-                  /// 🔥 ШКАЛА ВРЕМЕНИ
-                  Column(
-                    children: List.generate(24, (hour) {
-                      return SizedBox(
-                        height: 80,
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 60,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            /// ВСЕГДА АКТУАЛЬНЫЕ СОБЫТИЯ
+            final dayEvents = _getEventsForDay(day);
+
+            return Container(
+              padding: const EdgeInsets.all(10.0),
+
+              height: MediaQuery.of(context).size.height * 0.9,
+
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  height: 24 * hourHeight,
+
+                  child: Stack(
+                    children: [
+                      /// ШКАЛА ВРЕМЕНИ
+                      Column(
+                        children: List.generate(24, (hour) {
+                          return SizedBox(
+                            height: hourHeight,
+
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 60,
+
+                                  child: Text(
+                                    "$hour:00",
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
+
+                                const Expanded(child: Divider()),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+
+                      /// СОБЫТИЯ
+                      ...dayEvents.map((event) {
+                        final startMinutes =
+                            event.start.hour * 60 + event.start.minute;
+
+                        final endMinutes =
+                            event.end.hour * 60 + event.end.minute;
+
+                        final top = startMinutes * (hourHeight / 60);
+
+                        final height =
+                            (endMinutes - startMinutes).clamp(30, 10000) *
+                            (hourHeight / 60);
+
+                        return Positioned(
+                          top: top,
+                          left: 70,
+                          right: 10,
+
+                          child: GestureDetector(
+                            onTap: () async {
+                              await onEventTap(
+                                event,
+                                context,
+                                widget.calendarId,
+                              );
+
+                              /// ОБНОВЛЕНИЕ MODAL
+                              setModalState(() {});
+                            },
+
+                            child: Container(
+                              height: height,
+
+                              padding: const EdgeInsets.all(8),
+
+                              decoration: BoxDecoration(
+                                color: getEventColor(
+                                  event.importance,
+                                ).withOpacity(0.7),
+
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+
                               child: Text(
-                                "$hour:00",
-                                style: const TextStyle(fontSize: 12),
+                                "${event.title}\n${formatTime(event.start)}",
+
+                                style: const TextStyle(color: Colors.white),
                               ),
                             ),
-                            const Expanded(child: Divider()),
-                          ],
+                          ),
+                        );
+                      }).toList(),
+
+                      /// ЕСЛИ ПУСТО
+                      if (dayEvents.isEmpty)
+                        const Positioned(
+                          top: 100,
+                          left: 0,
+                          right: 0,
+
+                          child: Center(
+                            child: Text(
+                              "Нет событий",
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
                         ),
-                      );
-                    }),
+                    ],
                   ),
-
-                  /// 🔥 СОБЫТИЯ
-                  ...dayEvents.map((event) {
-                    final startMinutes =
-                        event.start.hour * 60 + event.start.minute;
-
-                    final endMinutes = event.end.hour * 60 + event.end.minute;
-
-                    final top = startMinutes * (80 / 60);
-
-                    final height =
-                        (endMinutes - startMinutes).clamp(30, 10000) *
-                        (80 / 60);
-
-                    return Positioned(
-                      top: top,
-                      left: 70,
-                      right: 10,
-                      child: GestureDetector(
-                        onTap: () =>
-                            onEventTap(event, context, widget.calendarId),
-                        child: Container(
-                          height: height,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            "${event.title}\n${formatTime(event.start)}",
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-
-                  /// 🔥 ЕСЛИ НЕТ СОБЫТИЙ
-                  if (dayEvents.isEmpty)
-                    const Positioned(
-                      top: 100,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Text(
-                          "Нет событий",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -233,10 +321,13 @@ class _MyWidgetState extends State<CoreScreen> {
     return Scaffold(
       body: Stack(
         children: [
+          /// ФОН
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/seaback.jpg'),
+                image: ThemeDataChoice.value == White_ThemeData
+                    ? const AssetImage('assets/images/seaback.jpg')
+                    : const AssetImage('assets/images/greyback.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -244,15 +335,18 @@ class _MyWidgetState extends State<CoreScreen> {
             child: Center(
               child: Container(
                 width: 900,
+
                 padding: const EdgeInsets.all(16),
 
                 decoration: BoxDecoration(
                   color: Colors.white24,
+
                   borderRadius: BorderRadius.circular(10),
                 ),
 
                 child: TableCalendar<Event>(
                   firstDay: DateTime.utc(2020, 1, 1),
+
                   lastDay: DateTime.utc(2030, 12, 31),
 
                   focusedDay: focusedDay,
@@ -281,70 +375,112 @@ class _MyWidgetState extends State<CoreScreen> {
                   },
 
                   eventLoader: _getEventsForDay,
+
+                  calendarBuilders: CalendarBuilders(
+                    markerBuilder: (context, day, eventsList) {
+                      if (eventsList.isEmpty) {
+                        return const SizedBox();
+                      }
+
+                      return Positioned(
+                        bottom: 5,
+
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+
+                          children: eventsList.take(3).map((e) {
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 1),
+
+                              width: 8,
+                              height: 8,
+
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+
+                                color: getEventColor(e.importance),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
           ),
 
-          /// 👤 ПРОФИЛЬ
+          /// ПРОФИЛЬ
           Align(
             alignment: Alignment.topRight,
+
             child: IconButton(
               onPressed: () {
                 Navigator.of(context).pushNamed('/Profil');
               },
+
               icon: const Icon(Icons.person),
             ),
           ),
         ],
       ),
 
-      /// 🔻 НИЖНЕЕ МЕНЮ
+      /// НИЖНЕЕ МЕНЮ
       bottomNavigationBar: BottomAppBar(
         color: Theme.of(context).primaryColor,
+
         shape: const CircularNotchedRectangle(),
 
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
+
           children: [
             IconButton(
               onPressed: () => Row_Calendar(context),
+
               icon: const Icon(Icons.date_range),
             ),
 
             IconButton(
               onPressed: () => ListPeople(context, widget.calendarId),
+
               icon: const Icon(Icons.group),
             ),
 
             const SizedBox(width: 40),
 
+            /// SETTINGS
             IconButton(
               onPressed: () => Navigator.of(
                 context,
               ).pushNamed('/Settings', arguments: widget.calendarId),
+
               icon: const Icon(Icons.settings),
             ),
 
             IconButton(
               onPressed: () => choice(),
+
               icon: const Icon(Icons.brightness_3),
             ),
           ],
         ),
       ),
 
-      /// ➕ ДОБАВИТЬ СОБЫТИЕ
+      /// FAB
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          CelebrationAdd(context, widget.calendarId);
-        },
+        onPressed: canEdit
+            ? () {
+                CelebrationAdd(context, widget.calendarId);
+              }
+            : null,
 
         shape: const CircleBorder(),
 
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: canEdit ? Theme.of(context).primaryColor : Colors.grey,
 
-        child: const Icon(Icons.add),
+        child: Icon(Icons.add),
       ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,

@@ -48,7 +48,7 @@ class UserEventsWidget extends StatelessWidget {
             child: Text("Нет посещённых событий"),
           );
         }
-
+        
         return ListView.builder(
           itemCount: filtered.length,
           itemBuilder: (_, i) {
@@ -71,6 +71,7 @@ class UserEventsWidget extends StatelessWidget {
                 final avatar = cal['avatar'] ?? 0;
 
                 return Card(
+                  color: Colors.white70,
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundImage: AssetImage(

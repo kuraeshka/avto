@@ -1,13 +1,17 @@
+import 'package:avto/Core/Theme.dart';
 import 'package:avto/Widget/RowCalendar/FormConnectCalendar.dart';
+import 'package:avto/Widget/choice_Theme.dart';
 import 'package:avto/frontend/Screens/Core_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void Row_Calendar(BuildContext context) {
   final userId = FirebaseAuth.instance.currentUser!.uid;
 
   showModalBottomSheet(
+    backgroundColor: Colors.white70,
     context: context,
     builder: (context) {
       return SizedBox(
@@ -15,7 +19,10 @@ void Row_Calendar(BuildContext context) {
         child: Column(
           children: [
             const SizedBox(height: 10),
-            const Text("Список календарей"),
+            Text(
+              "Список календарей",
+              style: GoogleFonts.pacifico(fontSize: 24, color: Colors.blueGrey),
+            ),
             const SizedBox(height: 10),
 
             Expanded(
@@ -35,7 +42,6 @@ void Row_Calendar(BuildContext context) {
                   return ListView(
                     scrollDirection: Axis.horizontal,
                     children: docs.map((doc) {
-
                       return FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance
                             .collection('calendars')
@@ -45,9 +51,7 @@ void Row_Calendar(BuildContext context) {
                           if (!calendarSnap.hasData) {
                             return const SizedBox(
                               width: 160,
-                              child: Center(
-                                child: CircularProgressIndicator(),
-                              ),
+                              child: Center(child: CircularProgressIndicator()),
                             );
                           }
 
@@ -74,7 +78,9 @@ void Row_Calendar(BuildContext context) {
                               margin: const EdgeInsets.all(8),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.blue,
+                                color: ThemeDataChoice.value == White_ThemeData
+                                    ? Colors.blue
+                                    : Colors.blueGrey,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Column(
@@ -108,13 +114,22 @@ void Row_Calendar(BuildContext context) {
                 },
               ),
             ),
-
-            ElevatedButton(
-              onPressed: () {
-                FormConnectCalendar(context);
-              },
-              child: const Icon(Icons.add),
+            SizedBox(
+              width: 100,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  FormConnectCalendar(context);
+                },
+                child: const Icon(Icons.add),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ThemeDataChoice.value == White_ThemeData
+                      ? Colors.blue
+                      : Colors.blueGrey,
+                ),
+              ),
             ),
+            SizedBox(height: 10),
           ],
         ),
       );

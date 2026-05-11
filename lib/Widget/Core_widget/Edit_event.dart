@@ -6,12 +6,16 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
   final titleController = TextEditingController(text: event.title);
 
   final placeController = TextEditingController(text: event.place);
+
   String formatTime(DateTime time) {
     return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
 
   DateTime start = event.start;
   DateTime end = event.end;
+
+  /// 🔥 ВАЖНОСТЬ
+  String selectedImportance = event.importance;
 
   /// ВЫБРАННЫЕ
   List<String> selectedPerformers = List<String>.from(event.performers);
@@ -25,10 +29,13 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
 
   showDialog(
     context: context,
+
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setModalState) {
+          /// =====================================
           /// ЗАГРУЗКА
+          /// =====================================
           Future<void> loadData() async {
             /// УЧАСТНИКИ
             final membersSnap = await FirebaseFirestore.instance
@@ -78,7 +85,9 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
 
             setModalState(() {
               members = loadedMembers;
+
               equipment = eq;
+
               selectedEquipment = selectedEq;
             });
           }
@@ -92,7 +101,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
 
             content: SizedBox(
               width: 600,
-              height: 700,
+              height: 750,
 
               child: Column(
                 children: [
@@ -101,6 +110,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                   /// =========================
                   TextField(
                     controller: titleController,
+
                     decoration: const InputDecoration(labelText: "Название"),
                   ),
 
@@ -111,7 +121,88 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                   /// =========================
                   TextField(
                     controller: placeController,
+
                     decoration: const InputDecoration(labelText: "Место"),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// =========================
+                  /// ВАЖНОСТЬ
+                  /// =========================
+                  const Align(
+                    alignment: Alignment.centerLeft,
+
+                    child: Text(
+                      "Степень важности",
+
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+
+                    children: [
+                      /// ⚫ ЧЁРНЫЙ
+                      GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            selectedImportance = "black";
+                          });
+                        },
+
+                        child: CircleAvatar(
+                          radius: 18,
+
+                          backgroundColor: Colors.black,
+
+                          child: selectedImportance == "black"
+                              ? const Icon(Icons.check, color: Colors.white)
+                              : null,
+                        ),
+                      ),
+
+                      /// 🔵 СИНИЙ
+                      GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            selectedImportance = "blue";
+                          });
+                        },
+
+                        child: CircleAvatar(
+                          radius: 18,
+
+                          backgroundColor: Colors.blue,
+
+                          child: selectedImportance == "blue"
+                              ? const Icon(Icons.check, color: Colors.white)
+                              : null,
+                        ),
+                      ),
+
+                      /// 🔴 КРАСНЫЙ
+                      GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            selectedImportance = "red";
+                          });
+                        },
+
+                        child: CircleAvatar(
+                          radius: 18,
+
+                          backgroundColor: Colors.red,
+
+                          child: selectedImportance == "red"
+                              ? const Icon(Icons.check, color: Colors.white)
+                              : null,
+                        ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 20),
@@ -121,8 +212,10 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                   /// =========================
                   const Align(
                     alignment: Alignment.centerLeft,
+
                     child: Text(
                       "Исполнители",
+
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -130,6 +223,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                   Expanded(
                     child: ListView.builder(
                       itemCount: members.length,
+
                       itemBuilder: (context, index) {
                         final m = members[index];
 
@@ -171,8 +265,10 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                   /// =========================
                   const Align(
                     alignment: Alignment.centerLeft,
+
                     child: Text(
                       "Оборудование",
+
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -180,6 +276,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                   Expanded(
                     child: ListView.builder(
                       itemCount: equipment.length,
+
                       itemBuilder: (context, index) {
                         final item = equipment[index];
 
@@ -215,7 +312,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                   const SizedBox(height: 10),
 
                   /// =========================
-                  /// ВРЕМЯ
+                  /// ВРЕМЯ НАЧАЛА
                   /// =========================
                   ListTile(
                     title: Text("Начало: ${formatTime(start)}"),
@@ -225,6 +322,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                     onTap: () async {
                       final picked = await showTimePicker(
                         context: context,
+
                         initialTime: TimeOfDay.fromDateTime(start),
                       );
 
@@ -242,6 +340,9 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                     },
                   ),
 
+                  /// =========================
+                  /// ВРЕМЯ КОНЦА
+                  /// =========================
                   ListTile(
                     title: Text("Конец: ${formatTime(end)}"),
 
@@ -250,6 +351,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                     onTap: () async {
                       final picked = await showTimePicker(
                         context: context,
+
                         initialTime: TimeOfDay.fromDateTime(end),
                       );
 
@@ -279,12 +381,14 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
 
                 label: const Text(
                   "Удалить",
+
                   style: TextStyle(color: Colors.red),
                 ),
 
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
+
                     builder: (_) => AlertDialog(
                       title: const Text("Удаление"),
 
@@ -295,6 +399,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                           onPressed: () {
                             Navigator.pop(context, false);
                           },
+
                           child: const Text("Нет"),
                         ),
 
@@ -302,13 +407,16 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                           onPressed: () {
                             Navigator.pop(context, true);
                           },
+
                           child: const Text("Да"),
                         ),
                       ],
                     ),
                   );
 
-                  if (confirm != true) return;
+                  if (confirm != true) {
+                    return;
+                  }
 
                   await FirebaseFirestore.instance
                       .collection('calendars')
@@ -330,6 +438,7 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                 onPressed: () {
                   Navigator.pop(context);
                 },
+
                 child: const Text("Отмена"),
               ),
 
@@ -355,6 +464,9 @@ void ShowEditEventDialog(Event event, BuildContext context, String calendarId) {
                         'performers': selectedPerformers,
 
                         'equipment': selectedEquipment,
+
+                        /// 🔥 ВАЖНОСТЬ
+                        'importance': selectedImportance,
                       });
 
                   if (context.mounted) {

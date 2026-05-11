@@ -1,6 +1,9 @@
+import 'package:avto/Core/Theme.dart';
+import 'package:avto/Widget/widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SettingsWindow extends StatefulWidget {
   const SettingsWindow({
@@ -29,6 +32,13 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
   String currentUserRole = "member";
 
+  /// ✅ ПРАВА
+  bool get canManageCalendar =>
+      currentUserRole == "admin" || currentUserRole == "manager";
+
+  bool get canEditEquipment =>
+      currentUserRole == "admin" || currentUserRole == "manager";
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +62,110 @@ class _SettingsWindowState extends State<SettingsWindow> {
     setState(() {
       currentUserRole = doc.data()?['role'] ?? 'member';
     });
+  }
+
+  /// =========================================
+  /// ДОБАВИТЬ ОБОРУДОВАНИЕ
+  /// =========================================
+  Future<void> _addEquipment() async {
+    final nameController = TextEditingController();
+    final placeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Добавить оборудование"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: "Название"),
+              ),
+              TextField(
+                controller: placeController,
+                decoration: const InputDecoration(labelText: "Место"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final item = {
+                  "name": nameController.text,
+                  "place": placeController.text,
+                };
+
+                final updated = List.from(equipment)..add(item);
+
+                await FirebaseFirestore.instance
+                    .collection('calendars')
+                    .doc(widget.calendarId)
+                    .update({"equipment": updated});
+
+                Navigator.pop(context);
+              },
+              child: const Text("Добавить"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// =========================================
+  /// РЕДАКТИРОВАТЬ ОБОРУДОВАНИЕ
+  /// =========================================
+  Future<void> _editEquipment(int index) async {
+    final item = equipment[index];
+
+    final nameController = TextEditingController(text: item['name']);
+
+    final placeController = TextEditingController(text: item['place']);
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Редактировать"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController),
+              TextField(controller: placeController),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                equipment[index] = {
+                  "name": nameController.text,
+                  "place": placeController.text,
+                };
+
+                await FirebaseFirestore.instance
+                    .collection('calendars')
+                    .doc(widget.calendarId)
+                    .update({"equipment": equipment});
+
+                setState(() {});
+                Navigator.pop(context);
+              },
+              child: const Text("Сохранить"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   /// =========================================
@@ -99,16 +213,17 @@ class _SettingsWindowState extends State<SettingsWindow> {
         .doc(widget.calendarId)
         .snapshots()
         .listen((doc) {
-      final data = doc.data();
-      if (data == null) return;
+          final data = doc.data();
 
-      setState(() {
-        nameController.text = data['name'] ?? '';
-        calendarCode = data['code'] ?? '';
-        selectedAvatar = data['avatar'] ?? 0;
-        equipment = data['equipment'] ?? [];
-      });
-    });
+          if (data == null) return;
+
+          setState(() {
+            nameController.text = data['name'] ?? '';
+            calendarCode = data['code'] ?? '';
+            selectedAvatar = data['avatar'] ?? 0;
+            equipment = data['equipment'] ?? [];
+          });
+        });
   }
 
   /// =========================================
@@ -118,9 +233,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
     await FirebaseFirestore.instance
         .collection('calendars')
         .doc(widget.calendarId)
-        .update({
-      'name': nameController.text,
-    });
+        .update({'name': nameController.text});
   }
 
   /// =========================================
@@ -134,13 +247,11 @@ class _SettingsWindowState extends State<SettingsWindow> {
     await FirebaseFirestore.instance
         .collection('calendars')
         .doc(widget.calendarId)
-        .update({
-      'avatar': index,
-    });
+        .update({'avatar': index});
   }
 
   /// =========================================
-  /// СМЕНА РОЛИ (С ЗАЩИТОЙ)
+  /// СМЕНА РОЛИ
   /// =========================================
   Future<void> _changeRole(String uid, String role) async {
     final memberDoc = await FirebaseFirestore.instance
@@ -152,12 +263,9 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
     final targetRole = memberDoc.data()?['role'];
 
-    /// ❌ НЕЛЬЗЯ МЕНЯТЬ АДМИНА
     if (targetRole == "admin") {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Нельзя изменить роль администратора"),
-        ),
+        const SnackBar(content: Text("Нельзя изменить роль администратора")),
       );
       return;
     }
@@ -173,10 +281,11 @@ class _SettingsWindowState extends State<SettingsWindow> {
   }
 
   /// =========================================
-  /// BOTTOM SHEET РОЛЕЙ
+  /// ВЫБОР РОЛИ
   /// =========================================
   void _showRoleSheet(String uid) {
     showModalBottomSheet(
+      backgroundColor: Colors.white70,
       context: context,
       builder: (context) {
         return SafeArea(
@@ -217,13 +326,122 @@ class _SettingsWindowState extends State<SettingsWindow> {
   void _copyCode() {
     Clipboard.setData(ClipboardData(text: calendarCode));
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Скопировано: $calendarCode")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Скопировано: $calendarCode")));
   }
 
-  void _leaveCalendar() {
-    Navigator.pop(context);
+  /// =========================================
+  /// УДАЛИТЬ КАЛЕНДАРЬ
+  /// =========================================
+  Future<void> _deleteCalendar() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Удаление календаря"),
+          content: const Text("Вы уверены что хотите удалить календарь?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Отмена"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Удалить"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    final events = await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .collection('events')
+        .get();
+
+    for (var doc in events.docs) {
+      await doc.reference.delete();
+    }
+
+    final members = await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .collection('members')
+        .get();
+
+    for (var doc in members.docs) {
+      await doc.reference.delete();
+    }
+
+    await FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(widget.calendarId)
+        .delete();
+
+    if (context.mounted) {
+      Navigator.pop(context);
+      Navigator.pop(context);
+    }
+  }
+
+  /// =========================================
+  /// ВЫЙТИ ИЗ КАЛЕНДАРЯ
+  /// =========================================
+  Future<void> _leaveCalendar() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Выход из календаря"),
+          content: const Text("Вы уверены что хотите выйти из календаря?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Выйти"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    final userId = widget.currentUserId;
+    final calendarId = widget.calendarId;
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    final memberRef = FirebaseFirestore.instance
+        .collection('calendars')
+        .doc(calendarId)
+        .collection('members')
+        .doc(userId);
+
+    batch.delete(memberRef);
+
+    final userCalendarRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('calendars')
+        .doc(calendarId);
+
+    batch.delete(userCalendarRef);
+
+    await batch.commit();
+
+    if (context.mounted) {
+      Navigator.pop(context);
+      Navigator.pop(context);
+    }
   }
 
   /// =========================================
@@ -236,11 +454,9 @@ class _SettingsWindowState extends State<SettingsWindow> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
+
           const SizedBox(height: 10),
 
           Expanded(
@@ -252,6 +468,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
                       final user = participants[i];
 
                       return Card(
+                        color: Colors.white70,
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundImage: AssetImage(
@@ -263,12 +480,11 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
                           subtitle: Text("Роль: ${user['role']}"),
 
-                          /// 🔒 КНОПКА ТОЛЬКО ДЛЯ НЕ-АДМИНОВ
-                          trailing: (currentUserRole == "admin" &&
+                          trailing:
+                              (currentUserRole == "admin" &&
                                   user['role'] != "admin")
                               ? TextButton(
-                                  onPressed: () =>
-                                      _showRoleSheet(user['uid']),
+                                  onPressed: () => _showRoleSheet(user['uid']),
                                   child: const Text("Сменить роль"),
                                 )
                               : null,
@@ -289,10 +505,22 @@ class _SettingsWindowState extends State<SettingsWindow> {
     return Expanded(
       child: Column(
         children: [
-          const Text(
-            "Оборудование",
-            style: TextStyle(fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Оборудование",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+
+              if (canEditEquipment)
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _addEquipment,
+                ),
+            ],
           ),
+
           Expanded(
             child: ListView.builder(
               itemCount: equipment.length,
@@ -300,9 +528,14 @@ class _SettingsWindowState extends State<SettingsWindow> {
                 final item = equipment[i];
 
                 return Card(
+                  color: Colors.white70,
                   child: ListTile(
                     title: Text(item['name'] ?? ''),
                     subtitle: Text("📍 ${item['place'] ?? ''}"),
+
+                    trailing: canEditEquipment ? const Icon(Icons.edit) : null,
+
+                    onTap: canEditEquipment ? () => _editEquipment(i) : null,
                   ),
                 );
               },
@@ -320,23 +553,24 @@ class _SettingsWindowState extends State<SettingsWindow> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
-        return GestureDetector(
-          onTap: () => _setAvatar(index),
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: selectedAvatar == index
-                    ? Colors.blue
-                    : Colors.transparent,
-                width: 3,
+        return Opacity(
+          opacity: canManageCalendar ? 1 : 0.4,
+          child: GestureDetector(
+            onTap: canManageCalendar ? () => _setAvatar(index) : null,
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: selectedAvatar == index
+                      ? Colors.blue
+                      : Colors.transparent,
+                  width: 3,
+                ),
+                shape: BoxShape.circle,
               ),
-              shape: BoxShape.circle,
-            ),
-            child: CircleAvatar(
-              radius: 30,
-              backgroundImage: AssetImage(
-                'assets/avatarsc/avatar$index.png',
+              child: CircleAvatar(
+                radius: 30,
+                backgroundImage: AssetImage('assets/avatarsc/avatar$index.png'),
               ),
             ),
           ),
@@ -351,57 +585,90 @@ class _SettingsWindowState extends State<SettingsWindow> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Настройки календаря'),
-      ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/seaback.jpg'),
+            image: ThemeDataChoice.value == White_ThemeData
+                ? const AssetImage('assets/images/seaback.jpg')
+                : const AssetImage('assets/images/greyback.jpg'),
             fit: BoxFit.cover,
           ),
         ),
+
         child: Center(
           child: Container(
             width: 700,
+
             padding: const EdgeInsets.all(16),
+
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white24,
               borderRadius: BorderRadius.circular(15),
             ),
+
             child: Column(
               children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white70),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          "Настройки календаря",
+                          style: GoogleFonts.pacifico(
+                            fontSize: 24,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 48),
+                  ],
+                ),
+
                 _avatarSelector(),
 
                 TextField(
                   controller: nameController,
+                  readOnly: !canManageCalendar,
+
                   decoration: InputDecoration(
                     labelText: "Название календаря",
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.save),
-                      onPressed: _saveName,
-                    ),
+
+                    suffixIcon: canManageCalendar
+                        ? IconButton(
+                            icon: const Icon(Icons.save),
+                            onPressed: _saveName,
+                          )
+                        : null,
                   ),
                 ),
 
                 const SizedBox(height: 10),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: SelectableText(
-                        "Код: $calendarCode",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                if (canManageCalendar)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SelectableText(
+                          "Код: $calendarCode",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      onPressed: _copyCode,
-                    ),
-                  ],
-                ),
+
+                      IconButton(
+                        icon: const Icon(Icons.copy),
+                        onPressed: _copyCode,
+                      ),
+                    ],
+                  ),
 
                 const SizedBox(height: 20),
 
@@ -409,7 +676,9 @@ class _SettingsWindowState extends State<SettingsWindow> {
                   child: Row(
                     children: [
                       _listBlock("Участники"),
+
                       const SizedBox(width: 20),
+
                       _equipmentBlock(),
                     ],
                   ),
@@ -420,9 +689,27 @@ class _SettingsWindowState extends State<SettingsWindow> {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
+
                   child: ElevatedButton(
-                    onPressed: _leaveCalendar,
-                    child: const Text("Выйти из календаря"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: currentUserRole == "admin"
+                          ? const Color.fromARGB(255, 208, 123, 123)
+                          : Colors.white70,
+                    ),
+
+                    onPressed: currentUserRole == "admin"
+                        ? _deleteCalendar
+                        : _leaveCalendar,
+
+                    child: Text(
+                      currentUserRole == "admin"
+                          ? "Удалить календарь"
+                          : "Выйти из календаря",
+                      style: GoogleFonts.pacifico(
+                        fontSize: 20,
+                        color: Colors.white70,
+                      ),
+                    ),
                   ),
                 ),
               ],

@@ -1,7 +1,9 @@
+import 'package:avto/Core/Theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:avto/Widget/Profil_widget/history.dart';
+import 'package:avto/Widget/Widget.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class ProfilWindow extends StatefulWidget {
   const ProfilWindow({super.key});
@@ -105,11 +107,12 @@ class _ProfilWindowState extends State<ProfilWindow> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text("Профиль пользователя")),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/seaback.jpg'),
+            image: ThemeDataChoice.value == White_ThemeData
+                ? const AssetImage('assets/images/seaback.jpg')
+                : const AssetImage('assets/images/greyback.jpg'),
             fit: BoxFit.cover,
           ),
         ),
@@ -118,11 +121,35 @@ class _ProfilWindowState extends State<ProfilWindow> {
             width: 600,
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white24,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white70),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          "Профиль пользователя",
+                          style: GoogleFonts.pacifico(
+                            fontSize: 24,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 48),
+                  ],
+                ),
                 _avatarSelector(),
 
                 SizedBox(height: 10),
@@ -147,26 +174,30 @@ class _ProfilWindowState extends State<ProfilWindow> {
 
                 SizedBox(height: 20),
 
-                Expanded(
-                  child: UserEventsWidget(
-                  )
-                ),
+                Expanded(child: UserEventsWidget()),
 
                 SizedBox(height: 10),
 
                 /// 🔥 ВЫХОД
-                ElevatedButton(
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
+                SizedBox(
+                  width: 600,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await FirebaseAuth.instance.signOut();
 
-                    Navigator.of(
-                      context,
-                    ).pushNamedAndRemoveUntil('/', (route) => false);
-                  },
-                  child: Text("Выйти из аккаунта"),
+                      Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil('/', (route) => false);
+                    },
+                    child: Text("Выйти из аккаунта"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white60,
+                    ),
+                  ),
                 ),
 
-                SizedBox(height: 20),
+                SizedBox(height: 15),
               ],
             ),
           ),

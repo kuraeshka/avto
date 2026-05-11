@@ -32,6 +32,7 @@ Future<void> ListPeople(BuildContext context, String calendarId) async {
     context: context,
     builder: (context) {
       return AlertDialog(
+        backgroundColor: Colors.white70,
         title: const Text("Список участников"),
         content: SizedBox(
           width: 300,

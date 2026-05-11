@@ -41,7 +41,7 @@ void FormConnectCalendar(BuildContext context) {
                   .doc(calendar.id)
                   .collection('members')
                   .doc(userId)
-                  .set({'role': 'viewer'});
+                  .set({'role': 'observer'});
 
               /// добавляем пользователю
               await FirebaseFirestore.instance
@@ -51,7 +51,7 @@ void FormConnectCalendar(BuildContext context) {
                   .doc(calendar.id)
                   .set({
                 'name': calendar['name'],
-                'role': 'viewer',
+                'role': 'observer',
               });
 
               Navigator.pop(context);
