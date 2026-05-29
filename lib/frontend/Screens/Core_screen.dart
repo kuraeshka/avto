@@ -232,7 +232,9 @@ class _MyWidgetState extends State<CoreScreen> {
                       ),
 
                       /// СОБЫТИЯ
-                      ...dayEvents.map((event) {
+                      ...List.generate(dayEvents.length, (index) {
+                        final event = dayEvents[index];
+
                         final startMinutes =
                             event.start.hour * 60 + event.start.minute;
 
@@ -245,9 +247,33 @@ class _MyWidgetState extends State<CoreScreen> {
                             (endMinutes - startMinutes).clamp(30, 10000) *
                             (hourHeight / 60);
 
+                        /// ПОИСК КОНФЛИКТОВ
+                        int overlapIndex = 0;
+
+                        for (int i = 0; i < index; i++) {
+                          final other = dayEvents[i];
+
+                          final otherStart =
+                              other.start.hour * 60 + other.start.minute;
+
+                          final otherEnd =
+                              other.end.hour * 60 + other.end.minute;
+
+                          final isOverlap =
+                              startMinutes < otherEnd &&
+                              endMinutes > otherStart;
+
+                          if (isOverlap) {
+                            overlapIndex++;
+                          }
+                        }
+
+                        /// СДВИГ
+                        final double leftOffset = 70.0 + (overlapIndex * 40.0);
+
                         return Positioned(
                           top: top,
-                          left: 70,
+                          left: leftOffset,
                           right: 10,
 
                           child: GestureDetector(
@@ -258,7 +284,6 @@ class _MyWidgetState extends State<CoreScreen> {
                                 widget.calendarId,
                               );
 
-                              /// ОБНОВЛЕНИЕ MODAL
                               setModalState(() {});
                             },
 
@@ -283,7 +308,7 @@ class _MyWidgetState extends State<CoreScreen> {
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
 
                       /// ЕСЛИ ПУСТО
                       if (dayEvents.isEmpty)
@@ -344,83 +369,281 @@ class _MyWidgetState extends State<CoreScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
 
-                child: TableCalendar<Event>(
-                  firstDay: DateTime.utc(2020, 1, 1),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              focusedDay = DateTime.now();
+                              selectedDay = DateTime.now();
+                            });
+                          },
 
-                  lastDay: DateTime.utc(2030, 12, 31),
+                          icon: const Icon(Icons.today),
 
-                  focusedDay: focusedDay,
+                          label: const Text("Сегодня"),
+                        ),
 
-                  rowHeight: 100,
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _calendarFormat =
+                                  _calendarFormat == CalendarFormat.month
+                                  ? CalendarFormat.week
+                                  : CalendarFormat.month;
+                            });
+                          },
 
-                  startingDayOfWeek: StartingDayOfWeek.monday,
+                          icon: Icon(
+                            _calendarFormat == CalendarFormat.month
+                                ? Icons.view_week
+                                : Icons.calendar_month,
+                          ),
 
-                  calendarFormat: _calendarFormat,
+                          label: Text(
+                            _calendarFormat == CalendarFormat.month
+                                ? "Неделя"
+                                : "Месяц",
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed('/Profil');
+                          },
 
-                  availableCalendarFormats: const {
-                    CalendarFormat.month: 'Месяц',
-                  },
+                          icon: const Icon(Icons.person),
+                        ),
+                      ],
+                    ),
 
-                  selectedDayPredicate: (day) {
-                    return isSameDay(selectedDay, day);
-                  },
+                    const SizedBox(height: 10),
 
-                  onDaySelected: (selected, focused) {
-                    selectedDay = selected;
-                    focusedDay = focused;
+                    Expanded(
+                      child: TableCalendar<Event>(
+                        firstDay: DateTime.utc(2020, 1, 1),
 
-                    setState(() {});
+                        lastDay: DateTime.utc(2030, 12, 31),
 
-                    _onDayTap(selected);
-                  },
+                        focusedDay: focusedDay,
 
-                  eventLoader: _getEventsForDay,
+                        rowHeight: _calendarFormat == CalendarFormat.week
+                            ? 440
+                            : 75,
 
-                  calendarBuilders: CalendarBuilders(
-                    markerBuilder: (context, day, eventsList) {
-                      if (eventsList.isEmpty) {
-                        return const SizedBox();
-                      }
+                        startingDayOfWeek: StartingDayOfWeek.monday,
 
-                      return Positioned(
-                        bottom: 5,
+                        calendarFormat: _calendarFormat,
 
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        availableCalendarFormats: const {
+                          CalendarFormat.month: 'Неделя',
+                          CalendarFormat.week: 'Месяц',
+                        },
 
-                          children: eventsList.take(3).map((e) {
-                            return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 1),
+                        
 
-                              width: 8,
-                              height: 8,
+                        onDaySelected: (selected, focused) {
+                          selectedDay = selected;
+                          focusedDay = focused;
 
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
+                          setState(() {});
 
-                                color: getEventColor(e.importance),
+                          _onDayTap(selected);
+                        },
+
+                        eventLoader: _getEventsForDay,
+
+                        calendarBuilders: CalendarBuilders(
+                          markerBuilder: (context, day, eventsList) {
+                            if (eventsList.isEmpty) {
+                              return const SizedBox();
+                            }
+
+                            return Positioned(
+                              bottom: 2,
+
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+
+                                children: eventsList.take(4).map((event) {
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 1,
+                                    ),
+
+                                    width: 7,
+                                    height: 7,
+
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+
+                                      color: getEventColor(
+                                        (event as Event).importance,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
                             );
-                          }).toList(),
+                          },
+
+                          defaultBuilder: (context, day, focusedDay) {
+                            final dayEvents = _getEventsForDay(day);
+
+                            final isWeekView =
+                                _calendarFormat == CalendarFormat.week;
+
+                            return Container(
+                              margin: const EdgeInsets.all(3),
+                              padding: const EdgeInsets.all(4),
+
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+
+                                color: isSameDay(selectedDay, day)
+                                    ? Theme.of(
+                                        context,
+                                      ).primaryColor.withOpacity(0.3)
+                                    : Colors.white.withOpacity(0.15),
+                              ),
+
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+
+                                children: [
+                                  /// ЧИСЛО
+                                  Text(
+                                    "${day.day}",
+
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 4),
+
+                                  /// WEEK VIEW
+                                  if (isWeekView)
+                                    Expanded(
+                                      child: ListView.builder(
+                                        itemCount: dayEvents.length,
+
+                                        itemBuilder: (context, index) {
+                                          final event = dayEvents[index];
+
+                                          return GestureDetector(
+                                            onTap: () async {
+                                              await onEventTap(
+                                                event,
+                                                context,
+                                                widget.calendarId,
+                                              );
+
+                                              setState(() {});
+                                            },
+
+                                            child: Container(
+                                              margin: const EdgeInsets.only(
+                                                bottom: 4,
+                                              ),
+
+                                              padding: const EdgeInsets.all(4),
+
+                                              decoration: BoxDecoration(
+                                                color: getEventColor(
+                                                  event.importance,
+                                                ).withOpacity(0.85),
+
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+
+                                              child: Text(
+                                                "${formatTime(event.start)} ${event.title}",
+
+                                                maxLines: 3,
+                                                overflow: TextOverflow.ellipsis,
+
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+
+                                  /// MONTH VIEW
+                                  if (!isWeekView) ...[
+                                    ...dayEvents.take(2).map((event) {
+                                      return Container(
+                                        width: double.infinity,
+
+                                        margin: const EdgeInsets.only(
+                                          bottom: 0.5,
+                                        ),
+
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 3,
+                                          vertical: 1,
+                                        ),
+
+                                        decoration: BoxDecoration(
+                                          color: getEventColor(
+                                            event.importance,
+                                          ),
+
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+
+                                        child: Text(
+                                          event.title,
+
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 9,
+                                            height: 1,
+                                          ),
+                                        ),
+                                      );
+                                    }),
+
+                                    /// ЕСЛИ СОБЫТИЙ МНОГО
+                                    if (dayEvents.length > 1)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 1),
+
+                                        child: Text(
+                                          "+${dayEvents.length - 2}",
+
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blueGrey,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ),
-
-          /// ПРОФИЛЬ
-          Align(
-            alignment: Alignment.topRight,
-
-            child: IconButton(
-              onPressed: () {
-                Navigator.of(context).pushNamed('/Profil');
-              },
-
-              icon: const Icon(Icons.person),
             ),
           ),
         ],

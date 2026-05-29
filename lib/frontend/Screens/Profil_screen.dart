@@ -40,7 +40,6 @@ class _ProfilWindowState extends State<ProfilWindow> {
       nameController.text = data['name'] ?? '';
       avatarIndex = data['avatar'] ?? 0;
     } else {
-      /// 🔥 создаём пользователя если нет
       await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
         'name': 'Без имени',
         'avatar': 0,
@@ -178,7 +177,6 @@ class _ProfilWindowState extends State<ProfilWindow> {
 
                 SizedBox(height: 10),
 
-                /// 🔥 ВЫХОД
                 SizedBox(
                   width: 600,
                   height: 50,

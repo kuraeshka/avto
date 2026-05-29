@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-
 class HelloWindow extends StatefulWidget {
   const HelloWindow({super.key});
 
@@ -16,6 +15,11 @@ class HelloWindow extends StatefulWidget {
 
 class _HelloWindowState extends State<HelloWindow> {
   String Datanow = DateFormat.MMMM().format(DateTime.now());
+  bool _dialogShown = false;
+  final hi_people = Text(
+    "Давайте наведем порядок в расписании!",
+    style: GoogleFonts.pacifico(fontSize: 28, color: Colors.blueGrey),
+  );
 
   @override
   void initState() {
@@ -24,7 +28,10 @@ class _HelloWindowState extends State<HelloWindow> {
   }
 
   Future<void> _checkUserName() async {
+    if (_dialogShown) return;
+
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) return;
 
     final doc = await FirebaseFirestore.instance
@@ -37,8 +44,12 @@ class _HelloWindowState extends State<HelloWindow> {
     final name = data?['name'];
 
     if (name == null || name.toString().trim().isEmpty) {
-      Future.delayed(Duration.zero, () {
-        _showNameDialog(user.uid);
+      _dialogShown = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showNameDialog(user.uid);
+        }
       });
     }
   }
@@ -54,9 +65,7 @@ class _HelloWindowState extends State<HelloWindow> {
           title: Text("Введите имя"),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(
-              hintText: "Ваше имя",
-            ),
+            decoration: InputDecoration(hintText: "Ваше имя"),
           ),
           actions: [
             TextButton(
@@ -68,9 +77,7 @@ class _HelloWindowState extends State<HelloWindow> {
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(uid)
-                    .set({
-                      'name': name,
-                    }, SetOptions(merge: true));
+                    .set({'name': name}, SetOptions(merge: true));
 
                 Navigator.pop(context);
               },
@@ -98,17 +105,7 @@ class _HelloWindowState extends State<HelloWindow> {
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Center(
-                  child: Text(
-                    "Давайте наведем порядок в расписании!",
-                    style: GoogleFonts.pacifico(
-                      fontSize: 28,
-                      color: Colors.blueGrey,
-                    ),
-                  ),
-                ),
-              ],
+              children: [Center(child: hi_people)],
             ),
           ),
 

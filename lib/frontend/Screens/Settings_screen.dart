@@ -358,30 +358,39 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
     if (confirm != true) return;
 
-    final events = await FirebaseFirestore.instance
+    final calendarRef = FirebaseFirestore.instance
         .collection('calendars')
-        .doc(widget.calendarId)
-        .collection('events')
-        .get();
+        .doc(widget.calendarId);
+
+    /// Участники
+    final members = await calendarRef.collection('members').get();
+
+    /// Удаляем календарь у всех пользователей
+    for (var member in members.docs) {
+      final uid = member.id;
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('calendars')
+          .doc(widget.calendarId)
+          .delete();
+    }
+
+    /// Удаляем events
+    final events = await calendarRef.collection('events').get();
 
     for (var doc in events.docs) {
       await doc.reference.delete();
     }
 
-    final members = await FirebaseFirestore.instance
-        .collection('calendars')
-        .doc(widget.calendarId)
-        .collection('members')
-        .get();
-
+    /// Удаляем members
     for (var doc in members.docs) {
       await doc.reference.delete();
     }
 
-    await FirebaseFirestore.instance
-        .collection('calendars')
-        .doc(widget.calendarId)
-        .delete();
+    /// Удаляем сам календарь
+    await calendarRef.delete();
 
     if (context.mounted) {
       Navigator.pop(context);
@@ -469,25 +478,66 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
                       return Card(
                         color: Colors.white70,
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: AssetImage(
-                              'assets/avatarsp/avatar${user['avatar']}.png',
-                            ),
-                          ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundImage: AssetImage(
+                                  'assets/avatarsp/avatar${user['avatar']}.png',
+                                ),
+                              ),
 
-                          title: Text(user['name']),
+                              const SizedBox(width: 12),
 
-                          subtitle: Text("Роль: ${user['role']}"),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      user['name'],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
 
-                          trailing:
-                              (currentUserRole == "admin" &&
+                                    const SizedBox(height: 4),
+
+                                    Text(
+                                      "Роль: ${user['role']}",
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+
+                                    if (user['description'] != null &&
+                                        user['description']
+                                            .toString()
+                                            .isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: Text(
+                                          user['description'],
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+
+                              if (currentUserRole == "admin" &&
                                   user['role'] != "admin")
-                              ? TextButton(
+                                TextButton(
                                   onPressed: () => _showRoleSheet(user['uid']),
-                                  child: const Text("Сменить роль"),
-                                )
-                              : null,
+                                  child: const Text("Роль"),
+                                ),
+                            ],
+                          ),
                         ),
                       );
                     },

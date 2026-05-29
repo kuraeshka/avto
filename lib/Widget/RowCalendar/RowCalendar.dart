@@ -54,7 +54,9 @@ void Row_Calendar(BuildContext context) {
                               child: Center(child: CircularProgressIndicator()),
                             );
                           }
-
+                          if (!calendarSnap.data!.exists) {
+                            return const SizedBox.shrink();
+                          }
                           final cal =
                               calendarSnap.data!.data()
                                   as Map<String, dynamic>? ??

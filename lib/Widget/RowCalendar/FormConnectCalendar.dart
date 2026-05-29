@@ -49,21 +49,22 @@ void FormConnectCalendar(BuildContext context) {
                   .doc(userId)
                   .collection('calendars')
                   .doc(calendar.id)
-                  .set({
-                'name': calendar['name'],
-                'role': 'observer',
-              });
+                  .set({'name': calendar['name'], 'role': 'observer'});
 
               Navigator.pop(context);
             },
             child: const Text("Подключиться"),
           ),
           ElevatedButton(
-              onPressed: () {
+            onPressed: () {
+              Navigator.pop(context);
+
+              Future.delayed(Duration.zero, () {
                 FormAddCalendar(context);
-              },
-              child: const Text("Создать"),
-            ),
+              });
+            },
+            child: const Text("Создать"),
+          ),
         ],
       );
     },

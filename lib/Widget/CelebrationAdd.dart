@@ -76,22 +76,17 @@ void CelebrationAdd(BuildContext context, String calendarId) {
 
               child: Column(
                 children: [
-
                   /// =======================
                   /// НАЗВАНИЕ
                   /// =======================
                   TextField(
                     controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: "Название",
-                    ),
+                    decoration: const InputDecoration(labelText: "Название"),
                   ),
 
                   TextField(
                     controller: placeController,
-                    decoration: const InputDecoration(
-                      labelText: "Место",
-                    ),
+                    decoration: const InputDecoration(labelText: "Место"),
                   ),
 
                   const SizedBox(height: 10),
@@ -103,20 +98,16 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Степень важности",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
 
                     children: [
-
                       /// ⚫ ЧЁРНЫЙ
                       GestureDetector(
                         onTap: () {
@@ -129,13 +120,9 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                           radius: 18,
                           backgroundColor: Colors.black,
 
-                          child:
-                              selectedImportance == "black"
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                    )
-                                  : null,
+                          child: selectedImportance == "black"
+                              ? const Icon(Icons.check, color: Colors.white)
+                              : null,
                         ),
                       ),
 
@@ -151,13 +138,9 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                           radius: 18,
                           backgroundColor: Colors.blue,
 
-                          child:
-                              selectedImportance == "blue"
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                    )
-                                  : null,
+                          child: selectedImportance == "blue"
+                              ? const Icon(Icons.check, color: Colors.white)
+                              : null,
                         ),
                       ),
 
@@ -173,13 +156,9 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                           radius: 18,
                           backgroundColor: Colors.red,
 
-                          child:
-                              selectedImportance == "red"
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                    )
-                                  : null,
+                          child: selectedImportance == "red"
+                              ? const Icon(Icons.check, color: Colors.white)
+                              : null,
                         ),
                       ),
                     ],
@@ -194,9 +173,7 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Исполнители",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
 
@@ -208,8 +185,7 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                         final m = members[index];
                         final uid = m['uid'];
 
-                        final isSelected =
-                            selectedPerformers.contains(uid);
+                        final isSelected = selectedPerformers.contains(uid);
 
                         return Card(
                           child: CheckboxListTile(
@@ -247,9 +223,7 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Оборудование",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
 
@@ -260,8 +234,7 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                       itemBuilder: (context, index) {
                         final item = equipment[index];
 
-                        final isSelected =
-                            selectedEquipment.contains(item);
+                        final isSelected = selectedEquipment.contains(item);
 
                         return Card(
                           child: CheckboxListTile(
@@ -279,8 +252,7 @@ void CelebrationAdd(BuildContext context, String calendarId) {
 
                             title: Text(item['name'] ?? ''),
 
-                            subtitle:
-                                Text(item['place'] ?? ''),
+                            subtitle: Text(item['place'] ?? ''),
 
                             secondary: const CircleAvatar(
                               child: Icon(Icons.build),
@@ -300,14 +272,10 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                     title: Text(
                       selectedDate == null
                           ? 'Дата не выбрана'
-                          : selectedDate!
-                              .toLocal()
-                              .toString()
-                              .split(' ')[0],
+                          : selectedDate!.toLocal().toString().split(' ')[0],
                     ),
 
-                    trailing:
-                        const Icon(Icons.calendar_today),
+                    trailing: const Icon(Icons.calendar_today),
 
                     onTap: () async {
                       final picked = await showDatePicker(
@@ -406,16 +374,16 @@ void CelebrationAdd(BuildContext context, String calendarId) {
                       .doc(calendarId)
                       .collection('events')
                       .add({
-                    'name': titleController.text,
-                    'start': startDate,
-                    'end': endDate,
-                    'place': placeController.text,
-                    'performers': selectedPerformers,
-                    'equipment': selectedEquipment,
+                        'name': titleController.text,
+                        'start': startDate,
+                        'end': endDate,
+                        'place': placeController.text,
+                        'performers': selectedPerformers,
+                        'equipment': selectedEquipment,
 
-                    /// 🔥 ВАЖНОСТЬ
-                    'importance': selectedImportance,
-                  });
+                        /// 🔥 ВАЖНОСТЬ
+                        'importance': selectedImportance,
+                      });
 
                   Navigator.pop(context);
                 },
