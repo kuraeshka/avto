@@ -240,7 +240,7 @@ class _UserEventsWidgetState extends State<UserEventsWidget> {
 
                       return Card(
                         color: Colors.white70,
-
+                        
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundImage: AssetImage(
@@ -270,6 +270,7 @@ class _UserEventsWidgetState extends State<UserEventsWidget> {
                         ),
                       );
                     },
+                    
                   );
                 },
               );

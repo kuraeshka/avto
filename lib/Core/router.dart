@@ -7,23 +7,49 @@ final router = {
   '/Rega': (context) => RegaWindow(),
   '/Profil': (context) => ProfilWindow(),
   '/Settings': (context) {
-  final args = ModalRoute.of(context)!.settings.arguments;
+    final args = ModalRoute.of(context)!.settings.arguments;
 
-  if (args == null || args is! String || args.isEmpty) {
-    return const Scaffold(
-      body: Center(child: Text("Ошибка: calendarId пустой")),
+    if (args == null || args is! String || args.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text("Ошибка: calendarId пустой")),
+      );
+    }
+
+    final String calendarId = args;
+
+    final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    return SettingsWindow(calendarId: calendarId, currentUserId: currentUserId);
+  },
+  '/ExecutorCalendar': (context) {
+    final args = ModalRoute.of(context)!.settings.arguments;
+
+    if (args == null || args is! Map<String, dynamic>) {
+      return const Scaffold(
+        body: Center(child: Text("Ошибка передачи данных")),
+      );
+    }
+
+    return ExecutorCalendarPage(
+      calendarId: args['calendarId'],
+      userId: args['userId'],
     );
-  }
+  },
+  '/ObjectsInfo': (context) {
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
-  final String calendarId = args;
+    return ObjectsInfoPage(calendarId: args['calendarId']);
+  },
+   '/objectsCalendar': (context) {
+    final args =
+        ModalRoute.of(context)!.settings.arguments
+            as Map<String, dynamic>;
 
-  final String currentUserId =
-      FirebaseAuth.instance.currentUser!.uid;
+    return ObjectsCalendarPage(
+      calendarId: args['calendarId'],
+    );
+  },
 
-  return SettingsWindow(
-    calendarId: calendarId,
-    currentUserId: currentUserId,
-  );
-},
   '/Hello': (context) => HelloWindow(),
 };

@@ -26,6 +26,28 @@ class _ProfilWindowState extends State<ProfilWindow> {
     _loadUser();
   }
 
+  Future<bool> _showLogoutDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Выход из аккаунта'),
+            content: const Text('Вы действительно хотите выйти из аккаунта?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Отмена'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Выйти'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   Future<void> _loadUser() async {
     if (user == null) return;
 
@@ -102,7 +124,7 @@ class _ProfilWindowState extends State<ProfilWindow> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -115,88 +137,222 @@ class _ProfilWindowState extends State<ProfilWindow> {
             fit: BoxFit.cover,
           ),
         ),
+
         child: Center(
           child: Container(
-            width: 600,
-            padding: EdgeInsets.all(16),
+            width: 700,
+            padding: const EdgeInsets.all(25),
+
             decoration: BoxDecoration(
               color: Colors.white24,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: Colors.white38, width: 2),
             ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white70),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
 
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          "Профиль пользователя",
-                          style: GoogleFonts.pacifico(
-                            fontSize: 24,
-                            color: Colors.white70,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  /// HEADER
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            "Мой профиль",
+
+                            style: GoogleFonts.pacifico(
+                              fontSize: 28,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                _avatarSelector(),
+                      const SizedBox(width: 50),
+                    ],
+                  ),
 
-                SizedBox(height: 10),
+                  const SizedBox(height: 15),
 
-                Text(
-                  user?.email ?? "Нет email",
-                  style: TextStyle(fontSize: 16),
-                ),
+                  /// ОСНОВНОЙ АВАТАР
+                  CircleAvatar(
+                    radius: 60,
 
-                SizedBox(height: 10),
-
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: "Имя",
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.save),
-                      onPressed: _saveName,
+                    backgroundImage: AssetImage(
+                      "assets/avatarsp/avatar$avatarIndex.png",
                     ),
                   ),
-                ),
 
-                SizedBox(height: 20),
+                  const SizedBox(height: 15),
 
-                Expanded(child: UserEventsWidget()),
+                  Text(
+                    nameController.text.isEmpty
+                        ? "Пользователь"
+                        : nameController.text,
 
-                SizedBox(height: 10),
-
-                SizedBox(
-                  width: 600,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-
-                      Navigator.of(
-                        context,
-                      ).pushNamedAndRemoveUntil('/', (route) => false);
-                    },
-                    child: Text("Выйти из аккаунта"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white60,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
 
-                SizedBox(height: 15),
-              ],
+                  const SizedBox(height: 5),
+
+                  Text(
+                    user?.email ?? "Нет email",
+
+                    style: const TextStyle(color: Colors.white70, fontSize: 15),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  /// ВЫБОР АВАТАРА
+                  Container(
+                    padding: const EdgeInsets.all(12),
+
+                    decoration: BoxDecoration(
+                      color: Colors.white30,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Выберите аватар",
+
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        _avatarSelector(),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  /// ИМЯ
+                  TextField(
+                    controller: nameController,
+
+                    style: const TextStyle(color: Colors.black),
+
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+
+                      labelText: "Ваше имя",
+
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.save, color: Colors.blue),
+
+                        onPressed: _saveName,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// СОБЫТИЯ
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+
+                      decoration: BoxDecoration(
+                        color: Colors.white30,
+
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.event, color: Colors.white),
+
+                              SizedBox(width: 8),
+
+                              Text(
+                                "Мои ближайшие события",
+
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          const Expanded(child: UserEventsWidget()),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// ВЫХОД
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.logout, color: Colors.white),
+
+                      label: const Text(
+                        "Выйти из аккаунта",
+
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.withOpacity(0.8),
+
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+
+                      onPressed: () async {
+                        final confirm = await _showLogoutDialog();
+
+                        if (!confirm) return;
+
+                        await FirebaseAuth.instance.signOut();
+
+                        if (context.mounted) {
+                          Navigator.of(
+                            context,
+                          ).pushNamedAndRemoveUntil('/', (route) => false);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

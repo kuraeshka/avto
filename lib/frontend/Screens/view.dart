@@ -4,3 +4,7 @@ export 'HellowWindow.dart';
 export 'Profil_screen.dart';
 export 'Settings_screen.dart';
 export 'Core_screen.dart';
+export 'Executor.dart';
+export 'Object_screen.dart';
+export 'object_calendar.dart';
+export 'Celebration_screen.dart';

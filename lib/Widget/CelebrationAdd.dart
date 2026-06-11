@@ -11,7 +11,8 @@ void CelebrationAdd(BuildContext context, String calendarId) {
 
   List<String> selectedPerformers = [];
   List<Map<String, dynamic>> selectedEquipment = [];
-
+  List<Map<String, dynamic>> objects = [];
+  Map<String, dynamic>? selectedObject;
   List<Map<String, dynamic>> members = [];
   List<Map<String, dynamic>> equipment = [];
 
@@ -57,6 +58,15 @@ void CelebrationAdd(BuildContext context, String calendarId) {
             final eq = (calendarDoc.data()?['equipment'] ?? [])
                 .cast<Map<String, dynamic>>();
 
+            final loadedObjects = List<Map<String, dynamic>>.from(
+              calendarDoc.data()?['objects'] ?? [],
+            );
+            setState(() {
+              members = loadedMembers;
+              equipment = eq;
+              objects = loadedObjects;
+            });
+
             setState(() {
               members = loadedMembers;
               equipment = eq;
@@ -67,330 +77,388 @@ void CelebrationAdd(BuildContext context, String calendarId) {
             loadData();
           }
 
-          return AlertDialog(
-            title: const Text("Добавление события"),
-
-            content: SizedBox(
-              width: double.maxFinite,
-              height: 700,
-
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Container(
+              width: 800,
+              height: 750,
+              padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  /// =======================
-                  /// НАЗВАНИЕ
-                  /// =======================
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(labelText: "Название"),
-                  ),
-
-                  TextField(
-                    controller: placeController,
-                    decoration: const InputDecoration(labelText: "Место"),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  /// =======================
-                  /// ВАЖНОСТЬ
-                  /// =======================
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Степень важности",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                  /// ШАПКА
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-
-                    children: [
-                      /// ⚫ ЧЁРНЫЙ
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedImportance = "black";
-                          });
-                        },
-
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Colors.black,
-
-                          child: selectedImportance == "black"
-                              ? const Icon(Icons.check, color: Colors.white)
-                              : null,
+                    child: const Row(
+                      children: [
+                        Icon(Icons.event, color: Colors.white, size: 35),
+                        SizedBox(width: 10),
+                        Text(
+                          "Новое событие",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-
-                      /// 🔵 СИНИЙ
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedImportance = "blue";
-                          });
-                        },
-
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Colors.blue,
-
-                          child: selectedImportance == "blue"
-                              ? const Icon(Icons.check, color: Colors.white)
-                              : null,
-                        ),
-                      ),
-
-                      /// 🔴 КРАСНЫЙ
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedImportance = "red";
-                          });
-                        },
-
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Colors.red,
-
-                          child: selectedImportance == "red"
-                              ? const Icon(Icons.check, color: Colors.white)
-                              : null,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 15),
 
-                  /// =======================
-                  /// ИСПОЛНИТЕЛИ
-                  /// =======================
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Исполнители",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-
+                  /// ОСНОВНОЙ КОНТЕНТ
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: members.length,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          /// НАЗВАНИЕ
+                          Card(
+                            elevation: 3,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: titleController,
+                                    decoration: const InputDecoration(
+                                      prefixIcon: Icon(Icons.title),
+                                      labelText: "Название события",
+                                    ),
+                                  ),
 
-                      itemBuilder: (context, index) {
-                        final m = members[index];
-                        final uid = m['uid'];
+                                  const SizedBox(height: 15),
 
-                        final isSelected = selectedPerformers.contains(uid);
-
-                        return Card(
-                          child: CheckboxListTile(
-                            value: isSelected,
-
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  selectedPerformers.add(uid);
-                                } else {
-                                  selectedPerformers.remove(uid);
-                                }
-                              });
-                            },
-
-                            title: Text(m['name']),
-
-                            secondary: CircleAvatar(
-                              backgroundImage: AssetImage(
-                                'assets/avatarsp/avatar${m['avatar']}.png',
+                                  DropdownButtonFormField<Map<String, dynamic>>(
+                                    value: selectedObject,
+                                    decoration: const InputDecoration(
+                                      prefixIcon: Icon(Icons.location_city),
+                                      labelText: "Объект",
+                                    ),
+                                    items: objects.map((obj) {
+                                      return DropdownMenuItem(
+                                        value: obj,
+                                        child: Text(
+                                          obj['name'] ?? 'Без названия',
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedObject = value;
+                                      });
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
 
-                  const SizedBox(height: 10),
+                          const SizedBox(height: 15),
 
-                  /// =======================
-                  /// ОБОРУДОВАНИЕ
-                  /// =======================
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Оборудование",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: equipment.length,
-
-                      itemBuilder: (context, index) {
-                        final item = equipment[index];
-
-                        final isSelected = selectedEquipment.contains(item);
-
-                        return Card(
-                          child: CheckboxListTile(
-                            value: isSelected,
-
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  selectedEquipment.add(item);
-                                } else {
-                                  selectedEquipment.remove(item);
-                                }
-                              });
-                            },
-
-                            title: Text(item['name'] ?? ''),
-
-                            subtitle: Text(item['place'] ?? ''),
-
-                            secondary: const CircleAvatar(
-                              child: Icon(Icons.build),
+                          /// ВАЖНОСТЬ
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "Степень важности",
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
-                        );
-                      },
+
+                          const SizedBox(height: 10),
+
+                          Wrap(
+                            spacing: 10,
+                            children: [
+                              ChoiceChip(
+                                label: const Text("Обычная"),
+                                selected: selectedImportance == "blue",
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedImportance = "blue";
+                                  });
+                                },
+                              ),
+                              ChoiceChip(
+                                label: const Text("Высокая"),
+                                selected: selectedImportance == "red",
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedImportance = "red";
+                                  });
+                                },
+                              ),
+                              ChoiceChip(
+                                label: const Text("Критическая"),
+                                selected: selectedImportance == "black",
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedImportance = "black";
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          /// ИСПОЛНИТЕЛИ
+                          ExpansionTile(
+                            leading: const Icon(Icons.people),
+                            title: const Text("Исполнители"),
+                            children: [
+                              SizedBox(
+                                height: 250,
+                                child: ListView.builder(
+                                  itemCount: members.length,
+                                  itemBuilder: (context, index) {
+                                    final m = members[index];
+                                    final uid = m['uid'];
+
+                                    final isSelected = selectedPerformers
+                                        .contains(uid);
+
+                                    return CheckboxListTile(
+                                      value: isSelected,
+                                      title: Text(m['name']),
+                                      secondary: CircleAvatar(
+                                        backgroundImage: AssetImage(
+                                          'assets/avatarsp/avatar${m['avatar']}.png',
+                                        ),
+                                      ),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          if (value == true) {
+                                            selectedPerformers.add(uid);
+                                          } else {
+                                            selectedPerformers.remove(uid);
+                                          }
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          /// ОБОРУДОВАНИЕ
+                          ExpansionTile(
+                            leading: const Icon(Icons.build),
+                            title: const Text("Оборудование"),
+                            children: [
+                              SizedBox(
+                                height: 250,
+                                child: ListView.builder(
+                                  itemCount: equipment.length,
+                                  itemBuilder: (context, index) {
+                                    final item = equipment[index];
+
+                                    final isSelected = selectedEquipment
+                                        .contains(item);
+
+                                    return CheckboxListTile(
+                                      value: isSelected,
+                                      title: Text(item['name'] ?? ''),
+                                      subtitle: Text(item['place'] ?? ''),
+                                      secondary: const CircleAvatar(
+                                        child: Icon(Icons.build),
+                                      ),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          if (value == true) {
+                                            selectedEquipment.add(item);
+                                          } else {
+                                            selectedEquipment.remove(item);
+                                          }
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          /// ДАТА И ВРЕМЯ
+                          Card(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: ListTile(
+                                    leading: const Icon(Icons.calendar_month),
+                                    title: Text(
+                                      selectedDate == null
+                                          ? "Дата"
+                                          : selectedDate!.toString().split(
+                                              ' ',
+                                            )[0],
+                                    ),
+                                    onTap: () async {
+                                      final picked = await showDatePicker(
+                                        context: context,
+                                        initialDate: DateTime.now(),
+                                        firstDate: DateTime(2000),
+                                        lastDate: DateTime(2100),
+                                      );
+
+                                      if (picked != null) {
+                                        setState(() {
+                                          selectedDate = picked;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+
+                                Expanded(
+                                  child: ListTile(
+                                    leading: const Icon(Icons.play_arrow),
+                                    title: Text(
+                                      startTime == null
+                                          ? "Начало"
+                                          : startTime!.format(context),
+                                    ),
+                                    onTap: () async {
+                                      final picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
+                                      );
+
+                                      if (picked != null) {
+                                        setState(() {
+                                          startTime = picked;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+
+                                Expanded(
+                                  child: ListTile(
+                                    leading: const Icon(Icons.stop),
+                                    title: Text(
+                                      endTime == null
+                                          ? "Конец"
+                                          : endTime!.format(context),
+                                    ),
+                                    onTap: () async {
+                                      final picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
+                                      );
+
+                                      if (picked != null) {
+                                        setState(() {
+                                          endTime = picked;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 15),
 
-                  /// =======================
-                  /// ДАТА
-                  /// =======================
-                  ListTile(
-                    title: Text(
-                      selectedDate == null
-                          ? 'Дата не выбрана'
-                          : selectedDate!.toLocal().toString().split(' ')[0],
-                    ),
+                  /// КНОПКИ
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("Отмена"),
+                        ),
+                      ),
 
-                    trailing: const Icon(Icons.calendar_today),
+                      const SizedBox(width: 10),
 
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
+                      Expanded(
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: const Text("Создать"),
+                          onPressed: () async {
+                            if (selectedObject == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Выберите объект"),
+                                ),
+                              );
+                              return;
+                            }
 
-                      if (picked != null) {
-                        setState(() {
-                          selectedDate = picked;
-                        });
-                      }
-                    },
-                  ),
+                            if (selectedDate == null ||
+                                startTime == null ||
+                                endTime == null) {
+                              return;
+                            }
 
-                  /// =======================
-                  /// ВРЕМЯ НАЧАЛА
-                  /// =======================
-                  ListTile(
-                    title: Text(
-                      startTime == null
-                          ? "Начало"
-                          : "${startTime!.hour}:${startTime!.minute.toString().padLeft(2, '0')}",
-                    ),
+                            final startDate = DateTime(
+                              selectedDate!.year,
+                              selectedDate!.month,
+                              selectedDate!.day,
+                              startTime!.hour,
+                              startTime!.minute,
+                            );
 
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
+                            final endDate = DateTime(
+                              selectedDate!.year,
+                              selectedDate!.month,
+                              selectedDate!.day,
+                              endTime!.hour,
+                              endTime!.minute,
+                            );
 
-                      if (picked != null) {
-                        setState(() {
-                          startTime = picked;
-                        });
-                      }
-                    },
-                  ),
+                            await FirebaseFirestore.instance
+                                .collection('calendars')
+                                .doc(calendarId)
+                                .collection('events')
+                                .add({
+                                  'name': titleController.text,
 
-                  /// =======================
-                  /// ВРЕМЯ КОНЦА
-                  /// =======================
-                  ListTile(
-                    title: Text(
-                      endTime == null
-                          ? "Конец"
-                          : "${endTime!.hour}:${endTime!.minute.toString().padLeft(2, '0')}",
-                    ),
+                                  /// ОБЪЕКТ
+                                  'place': selectedObject!['name'],
 
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
+                                  /// ВРЕМЯ
+                                  'start': startDate,
+                                  'end': endDate,
 
-                      if (picked != null) {
-                        setState(() {
-                          endTime = picked;
-                        });
-                      }
-                    },
+                                  /// КООРДИНАТЫ
+                                  'latitude': selectedObject!['latitude'],
+                                  'longitude': selectedObject!['longitude'],
+
+                                  /// ИСПОЛНИТЕЛИ И ОБОРУДОВАНИЕ
+                                  'performers': selectedPerformers,
+                                  'equipment': selectedEquipment,
+
+                                  /// ВАЖНОСТЬ
+                                  'importance': selectedImportance,
+                                });
+
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  if (selectedDate == null ||
-                      startTime == null ||
-                      endTime == null) {
-                    return;
-                  }
-
-                  final startDate = DateTime(
-                    selectedDate!.year,
-                    selectedDate!.month,
-                    selectedDate!.day,
-                    startTime!.hour,
-                    startTime!.minute,
-                  );
-
-                  final endDate = DateTime(
-                    selectedDate!.year,
-                    selectedDate!.month,
-                    selectedDate!.day,
-                    endTime!.hour,
-                    endTime!.minute,
-                  );
-
-                  await FirebaseFirestore.instance
-                      .collection('calendars')
-                      .doc(calendarId)
-                      .collection('events')
-                      .add({
-                        'name': titleController.text,
-                        'start': startDate,
-                        'end': endDate,
-                        'place': placeController.text,
-                        'performers': selectedPerformers,
-                        'equipment': selectedEquipment,
-
-                        /// 🔥 ВАЖНОСТЬ
-                        'importance': selectedImportance,
-                      });
-
-                  Navigator.pop(context);
-                },
-
-                child: const Text("Добавить"),
-              ),
-            ],
           );
         },
       );
